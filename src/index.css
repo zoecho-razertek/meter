@@ -1,0 +1,85 @@
+:root {
+  --color-primary-blue-main: #3A6EA5;
+  --color-primary-blue-press: #204367;
+  --color-primary-blue-disable: #D4E2EA;
+
+  --color-base-white-main: #FFFFFF;
+  --color-base-white-trans50: rgba(255,255,255,0.5);
+  --color-base-white-second: #F0F0F0;
+  --color-base-white-edit: #F7F7F7;
+  --color-base-white-trans90: rgba(255,255,255,0.9);
+  --color-base-white-blue: #E1E9F0;
+
+  --color-base-grey-divider: #C2C2C2;
+  --color-base-grey-input: #D9D9D9;
+  --color-base-grey-card: #FEFEFE;
+  --color-base-grey-icon: #5D697F;
+
+  --color-text-main: #333333;
+  --color-text-secondary: #666666;
+  --color-text-link: #2E739E;
+  --color-text-unfocus: #8AADC2;
+  --color-text-placeholder: #999999;
+  --color-text-white: #FFFFFF;
+
+  --color-base-notice-success: #337C05;
+  --color-base-notice-error: #DD330D;
+  --color-base-notice-notify: #DD9F18;
+  --color-base-notice-warning: #FF9583;
+  --color-base-notice-success-tag: #C5DCB6;
+  --color-base-notice-warning-tag: #F1CEB1;
+  --color-base-notice-blue-tag: #CEE4F1;
+
+  --color-secondary-yellow: #FACD6D;
+  --color-secondary-blue: #0578B5;
+
+  --color-base-white-gradient-light: #E6F0F7;
+  --color-base-white-gradient-dark: #C9D4E3;
+
+  /* ── Typography ── */
+  --font-size-h1: 24px;
+  --font-size-h2: 20px;
+  --font-size-p1: 16px;
+  --font-size-p2: 15px;
+  --font-size-p3: 14px;
+  --font-size-p4: 12px;
+  --font-size-s1: 10px;
+  --font-size-s2: 9px;
+
+  --font-weight-semibold: 600;
+  --font-weight-medium: 500;
+  --font-weight-regular: 400;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'PingFang TC', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  background: var(--color-base-white-gradient-dark);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
+p { margin: 0; }
