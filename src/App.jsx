@@ -27,6 +27,7 @@ import imgCardBg from './assets/img_btn_landlord_rent_b.png'
 import imgPropertyDefault from './assets/img_lock_default_maindoor.png'
 import icRentFire from './assets/ic_basic_rent_fire.png'
 import icRentIce from './assets/ic_basic_rent_ice.png'
+import icTutorial02 from './assets/ic_tutorial_02.png'
 
 const AVATAR_URL = 'https://www.figma.com/api/mcp/asset/ae2ed0b3-1b14-42c5-80d6-6066188605c9'
 const PHOTO_GATE_URL = 'https://www.figma.com/api/mcp/asset/c93c7523-d035-429c-b758-743c1b70bfbc'
@@ -394,7 +395,54 @@ function DepositHistoryPage({ onBack }) {
   )
 }
 
-function MeterInfoPage({ onBack, scenario, isLandlord }) {
+function MeterModePage({ onBack, currentMode, onSave }) {
+  const [selected, setSelected] = useState(currentMode)
+  const modes = [
+    { key: '供電', label: '供電模式', desc: '正常使用電力。' },
+    { key: '斷電', label: '斷電模式', desc: '切斷電力，無法用電。' },
+  ]
+  const CheckIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <path d="M5 13l4 4L19 7" stroke="var(--color-primary-blue-main)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
+  return (
+    <div className="elec-page">
+      <StatusBar />
+      <div className="elec-header">
+        <button className="elec-back-btn" onClick={onBack}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <span className="elec-title">電表模式</span>
+        <div style={{ width: 44 }} />
+      </div>
+      <div className="mmode-body">
+        <div className="mi-group">
+          {modes.map((m, i) => (
+            <div
+              key={m.key}
+              className={`mmode-row${i < modes.length - 1 ? ' mmode-row--divider' : ''}`}
+              onClick={() => setSelected(m.key)}
+            >
+              <div className="mmode-info">
+                <span className="mmode-label">{m.label}</span>
+                <span className="mmode-desc">{m.desc}</span>
+              </div>
+              {selected === m.key && <CheckIcon />}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mmode-btn-area">
+        <button className="mmode-save-btn" onClick={() => onSave(selected)}>儲存</button>
+      </div>
+    </div>
+  )
+}
+
+function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
   const [showRecord, setShowRecord] = useState(false)
   const [showDeposit, setShowDeposit] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
@@ -402,11 +450,26 @@ function MeterInfoPage({ onBack, scenario, isLandlord }) {
   const [showDeduction, setShowDeduction] = useState(false)
   const [showBalanceEdit, setShowBalanceEdit] = useState(false)
   const [showMeterName, setShowMeterName] = useState(false)
+  const [showModeSelect, setShowModeSelect] = useState(false)
+  const [meterMode, setMeterMode] = useState('供電')
   const [paymentAmt, setPaymentAmt] = useState(null)
   const isDeposit = scenario === 0
+  const isTraditional = scenario === 2 || scenario === 3 || scenario === 5
+  const isVacant = scenario === 4 || scenario === 5
+
+  if (showModeSelect) {
+    return <MeterModePage
+      onBack={() => setShowModeSelect(false)}
+      currentMode={meterMode}
+      onSave={(mode) => { setMeterMode(mode); setShowModeSelect(false) }}
+    />
+  }
 
   if (showRecord) {
-    return <ElecRecordPage scenario={2} onBack={() => setShowRecord(false)} />
+    if (isLandlord && isTraditional) {
+      return <MeterDataPage item={item} onBack={() => setShowRecord(false)} scenario={scenario} />
+    }
+    return <ElecRecordPage scenario={scenario} onBack={() => setShowRecord(false)} />
   }
   if (showHistory) {
     return <DepositHistoryPage onBack={() => setShowHistory(false)} />
@@ -442,16 +505,18 @@ function MeterInfoPage({ onBack, scenario, isLandlord }) {
 
       <div className="mi-body">
         {/* 基本資訊 (no section title) */}
-        <div className="mi-group">
-          <div className="mi-row mi-row--divider">
-            <span className="mi-label">型號</span>
-            <span className="mi-value">AF221</span>
+        {!isTraditional && (
+          <div className="mi-group">
+            <div className="mi-row mi-row--divider">
+              <span className="mi-label">型號</span>
+              <span className="mi-value">AF221</span>
+            </div>
+            <div className="mi-row">
+              <span className="mi-label">連線狀態</span>
+              <span className="mi-value">已綁定 – <span className="mi-value--green">連線正常</span></span>
+            </div>
           </div>
-          <div className="mi-row">
-            <span className="mi-label">連線狀態</span>
-            <span className="mi-value">已綁定 – <span className="mi-value--green">連線正常</span></span>
-          </div>
-        </div>
+        )}
 
         <div className="mi-section-title">電表設備</div>
         <div className="mi-group">
@@ -469,14 +534,16 @@ function MeterInfoPage({ onBack, scenario, isLandlord }) {
           <div className="mi-row mi-row--divider">
             <span className="mi-label">狀態</span>
             <div className="mi-value-row">
-              <span className="mi-value">租約中</span>
+              <span className="mi-value">{isVacant ? '無租約' : '租約中'}</span>
               <InfoIcon />
             </div>
           </div>
-          <div className="mi-row">
-            <span className="mi-label">電表 ID</span>
-            <span className="mi-value">12-34-5678-90-1</span>
-          </div>
+          {!isTraditional && (
+            <div className="mi-row">
+              <span className="mi-label">電表 ID</span>
+              <span className="mi-value">12-34-5678-90-1</span>
+            </div>
+          )}
         </div>
 
         <div className="mi-section-title">電表運作</div>
@@ -485,10 +552,12 @@ function MeterInfoPage({ onBack, scenario, isLandlord }) {
             <span className="mi-label">目前電表度數</span>
             <span className="mi-value">12342.55</span>
           </div>
-          <div className="mi-row mi-row--divider">
-            <span className="mi-label">計價方式</span>
-            <span className="mi-value">{isDeposit ? '儲值模式' : '系統抄表'}</span>
-          </div>
+          {!isVacant && (
+            <div className="mi-row mi-row--divider">
+              <span className="mi-label">計價方式</span>
+              <span className="mi-value">{isDeposit ? '儲值模式' : isTraditional ? '手動抄表' : '系統抄表'}</span>
+            </div>
+          )}
           {isDeposit ? (<>
             <div className="mi-row mi-row--divider">
               <span className="mi-label">儲值費率</span>
@@ -509,6 +578,16 @@ function MeterInfoPage({ onBack, scenario, isLandlord }) {
               <span className="mi-label">扣款紀錄</span>
               <ChevronRight />
             </div>
+          </>) : isVacant ? (<>
+            {scenario === 4 && (
+              <div className="mi-row" style={{ cursor: 'pointer' }} onClick={() => setShowModeSelect(true)}>
+                <span className="mi-label">電表模式</span>
+                <div className="mi-value-row">
+                  <span className="mi-value">{meterMode}</span>
+                  <ChevronRight />
+                </div>
+              </div>
+            )}
           </>) : (<>
             <div className="mi-row mi-row--divider">
               <span className="mi-label">電費</span>
@@ -526,35 +605,37 @@ function MeterInfoPage({ onBack, scenario, isLandlord }) {
         </div>
 
         {isLandlord && (<>
-          <div className="mi-section-title">保固資訊</div>
-          <div className="mi-group">
-            <div className="mi-row mi-row--divider">
-              <span className="mi-label">保固區域</span>
-              <span className="mi-value">TW</span>
-            </div>
-            <div className="mi-row mi-row--divider">
-              <span className="mi-label">保固到期日</span>
-              <span className="mi-value">2025/12/30</span>
-            </div>
-            <div className="mi-row">
-              <div className="mi-label-row">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1v-9.5z" stroke="#333" strokeWidth="1.2" strokeLinejoin="round"/>
-                  <path d="M9 13h6M12 10v6" stroke="#333" strokeWidth="1.2" strokeLinecap="round"/>
-                </svg>
-                <span className="mi-label">購買保固</span>
+          {!isTraditional && (<>
+            <div className="mi-section-title">保固資訊</div>
+            <div className="mi-group">
+              <div className="mi-row mi-row--divider">
+                <span className="mi-label">保固區域</span>
+                <span className="mi-value">TW</span>
               </div>
-              <ChevronRight />
+              <div className="mi-row mi-row--divider">
+                <span className="mi-label">保固到期日</span>
+                <span className="mi-value">2025/12/30</span>
+              </div>
+              <div className="mi-row">
+                <div className="mi-label-row">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 10.5L12 3l9 7.5V20a1 1 0 01-1 1H4a1 1 0 01-1-1v-9.5z" stroke="#333" strokeWidth="1.2" strokeLinejoin="round"/>
+                    <path d="M9 13h6M12 10v6" stroke="#333" strokeWidth="1.2" strokeLinecap="round"/>
+                  </svg>
+                  <span className="mi-label">購買保固</span>
+                </div>
+                <ChevronRight />
+              </div>
             </div>
-          </div>
 
-          <div className="mi-note">
-            <InfoIcon />
-            <span className="mi-note-text">若您的保固尚未過期，才能購買保固。</span>
-          </div>
+            <div className="mi-note">
+              <InfoIcon />
+              <span className="mi-note-text">若您的保固尚未過期，才能購買保固。</span>
+            </div>
+          </>)}
 
           <div className="mi-btn-area">
-            <button className="mi-btn mi-btn--outline">更換電表</button>
+            {!isTraditional && <button className="mi-btn mi-btn--outline">更換電表</button>}
             <button className="mi-btn mi-btn--grey">變更計價方式</button>
           </div>
         </>)}
@@ -567,13 +648,13 @@ function MeterInfoPage({ onBack, scenario, isLandlord }) {
   )
 }
 
-function MHMeterPage({ onBack, scenario }) {
+function MHMeterPage({ onBack, scenario, isLandlord }) {
   const [activeTab, setActiveTab] = useState(0)
   const [showMeterInfo, setShowMeterInfo] = useState(false)
   const tabs = ['當日', '當週', '當月', '年']
 
   if (showMeterInfo) {
-    return <MeterInfoPage scenario={scenario} onBack={() => setShowMeterInfo(false)} />
+    return <MeterInfoPage scenario={scenario} isLandlord={isLandlord} onBack={() => setShowMeterInfo(false)} />
   }
 
   return (
@@ -711,7 +792,7 @@ function ElecRecordPage({ scenario, onBack }) {
   const [selected, setSelected] = useState(null)
   const hasDetail = scenario === 3
 
-  if (scenario === 0 || scenario === 1) {
+  if (scenario === 0) {
     return <MHMeterPage scenario={scenario} onBack={onBack} />
   }
 
@@ -760,12 +841,62 @@ function ElecRecordPage({ scenario, onBack }) {
 
 // ─── Meter Data Page (抄表資料) ───────────────────────────────────────────────
 
-function MeterDataPage({ item, onBack, scenario }) {
-  const [selected,       setSelected]       = useState(null)
-  const [showReminder,   setShowReminder]   = useState(false)
-  const [showToast,      setShowToast]      = useState(false)
+function ManualReadingSheet({ lastDate, prevReading, onClose, onSubmit }) {
+  const [reading, setReading] = useState('')
+  const [showErrorToast, setShowErrorToast] = useState(false)
 
-  const isLandlordManual = scenario === 1 || scenario === 2
+  const handleSubmit = () => {
+    if (!reading) return
+    if (Number(reading) < Number(prevReading)) {
+      setShowErrorToast(true)
+      setTimeout(() => setShowErrorToast(false), 2500)
+      return
+    }
+    onSubmit(reading)
+  }
+
+  return (
+    <div className="mdr-overlay" onClick={onClose}>
+      <div className="mdr-sheet" onClick={e => e.stopPropagation()}>
+        <div className="mdr-handle" />
+        <div className="mdr-content">
+          <p className="mdr-title">電表抄表</p>
+          <div className="mdr-field">
+            <div className="mdr-field-label-row">
+              <span className="mdr-field-label">本期電表度數*</span>
+              <span className="mdr-field-hint">上次抄表日期：{lastDate}</span>
+            </div>
+            <div className="mdr-input-box">
+              <input
+                className="mdr-input"
+                value={reading}
+                onChange={e => setReading(e.target.value.replace(/\D/g, ''))}
+                placeholder={`上次抄表度數 ${prevReading}`}
+                inputMode="numeric"
+              />
+              <span className="mdr-input-unit">度</span>
+            </div>
+          </div>
+          <button
+            className={`mdr-submit-btn${reading ? '' : ' mdr-submit-btn--disabled'}`}
+            disabled={!reading}
+            onClick={handleSubmit}
+          >上傳度數</button>
+        </div>
+        {showErrorToast && <div className="toast toast--error">不可小於前期抄表度數</div>}
+      </div>
+    </div>
+  )
+}
+
+function MeterDataPage({ item, onBack, scenario }) {
+  const [selected,          setSelected]          = useState(null)
+  const [showReminder,      setShowReminder]      = useState(false)
+  const [showToast,         setShowToast]         = useState(false)
+  const [showReadingSheet,  setShowReadingSheet]  = useState(false)
+  const [uploadedReading,   setUploadedReading]   = useState(null)
+
+  const isLandlordManual = scenario === 2
   const hasDetail = !isLandlordManual
 
   const handleReminderConfirm = () => {
@@ -794,23 +925,40 @@ function MeterDataPage({ item, onBack, scenario }) {
       <div className="elec-body md-body">
         <div className="elec-year-label">2024</div>
         <div className="elec-list">
-          {ELEC_RECORDS.map(({ date, reading }) => (
-            <div
-              key={date}
-              className={`elec-row elec-row--divider${hasDetail ? ' elec-row--clickable' : ''}`}
-              onClick={hasDetail ? () => setSelected({ date, reading }) : undefined}
-            >
-              <span className="elec-row-date">{date}</span>
-              <div className="elec-row-right">
-                <span className="elec-row-reading">{reading} 度</span>
-                {hasDetail && (
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M9 6l6 6-6 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                )}
+          {ELEC_RECORDS.map(({ date, reading }, i) => {
+            const isFailed = isLandlordManual && i === 0
+            const showFailed = isFailed && !uploadedReading
+            return (
+              <div
+                key={date}
+                className={`elec-row elec-row--divider${hasDetail || showFailed ? ' elec-row--clickable' : ''}`}
+                onClick={
+                  showFailed ? () => setShowReadingSheet(true) :
+                  hasDetail ? () => setSelected({ date, reading }) :
+                  undefined
+                }
+              >
+                <span className="elec-row-date">{date}</span>
+                <div className="elec-row-right">
+                  {showFailed ? (<>
+                    <span className="elec-row-reading elec-row-reading--failed">抄表失敗</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 6l6 6-6 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </>) : isFailed ? (<>
+                    <span className="elec-row-reading">{uploadedReading} 度</span>
+                  </>) : (<>
+                    <span className="elec-row-reading">{reading} 度</span>
+                    {hasDetail && (
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 6l6 6-6 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </>)}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -845,6 +993,14 @@ function MeterDataPage({ item, onBack, scenario }) {
         </div>
       )}
       {showToast && <Toast message="已發送抄表提醒！" />}
+      {showReadingSheet && (
+        <ManualReadingSheet
+          lastDate={ELEC_RECORDS[1]?.date ?? ''}
+          prevReading={ELEC_RECORDS[1]?.reading ?? ''}
+          onClose={() => setShowReadingSheet(false)}
+          onSubmit={(val) => { setUploadedReading(val); setShowReadingSheet(false) }}
+        />
+      )}
     </div>
   )
 }
@@ -885,22 +1041,22 @@ function LandlordSideMenu({ open, onClose, onMenuSelect }) {
 
 const METER_GROUPS = [
   { property: '台北套房', items: [
-    { room: '101', tenant: '奇爾查克', sub: '退租日：2025/03/08', tag: null,  alertTag: '上月未抄表', prevReading: 12389 },
-    { room: '102', tenant: null,       sub: '空置',               tag: null,  alertTag: null,         prevReading: 11823 },
-    { room: '103', tenant: '先西',     sub: '即將搬入',           tag: null,  alertTag: null,         prevReading: 10274 },
-    { room: '104', tenant: null,       sub: '空置',               tag: null,  alertTag: null,         prevReading: 9851  },
-    { room: '105', tenant: '瑪露希爾', sub: '退租日：2025/03/08', tag: 'New', alertTag: null,         prevReading: 13102 },
+    { room: '101', tenant: '奇爾查克', sub: '退租日：2025/03/08', tag: null,  traditionalTag: '租客抄表', alertTag: '上月未抄表', prevReading: 12389 },
+    { room: '102', tenant: null,       sub: '空置',               tag: null,  traditionalTag: null,       alertTag: null,         prevReading: 11823 },
+    { room: '103', tenant: '先西',     sub: '即將搬入',           tag: null,  traditionalTag: '租客抄表', alertTag: null,         prevReading: 10274 },
+    { room: '104', tenant: null,       sub: '空置',               tag: null,  traditionalTag: null,       alertTag: null,         prevReading: 9851  },
+    { room: '105', tenant: '瑪露希爾', sub: '退租日：2025/03/08', tag: 'New', traditionalTag: '房東抄表', alertTag: null,         prevReading: 13102 },
   ]},
   { property: '桃園套房', items: [
-    { room: '101', tenant: '小李',   sub: '退租日：2025/03/08', tag: null, prevReading: 8834 },
-    { room: '102', tenant: '自來也', sub: '退租日：2025/03/08', tag: null, prevReading: 9271 },
+    { room: '101', tenant: '小李',   sub: '退租日：2025/03/08', tag: null, traditionalTag: '租客抄表', prevReading: 8834 },
+    { room: '102', tenant: '自來也', sub: '退租日：2025/03/08', tag: null, traditionalTag: '房東抄表', prevReading: 9271 },
   ]},
   { property: '台中套房', items: [
-    { room: '201', tenant: '陳大文', sub: '退租日：2025/06/30', tag: null, prevReading: 14502 },
+    { room: '201', tenant: '陳大文', sub: '退租日：2025/06/30', tag: null, traditionalTag: '租客抄表', prevReading: 14502 },
   ]},
   { property: '台東民宿', items: [
-    { room: 'A01', tenant: '林小花', sub: '退租日：2025/05/15', tag: 'New', prevReading: 7643 },
-    { room: 'A02', tenant: null,     sub: '空置',               tag: null,  prevReading: 6218 },
+    { room: 'A01', tenant: '林小花', sub: '退租日：2025/05/15', tag: 'New', traditionalTag: '租客抄表', prevReading: 7643 },
+    { room: 'A02', tenant: null,     sub: '空置',               tag: null,  traditionalTag: null,       prevReading: 6218 },
   ]},
 ]
 
@@ -1095,7 +1251,7 @@ function ManualMeterPage({ onBack, onConfirm }) {
   )
 }
 
-function MeterListPage({ onBack, scenario }) {
+function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
   const [activeTab,    setActiveTab]    = useState(0)
   const [showSort,     setShowSort]     = useState(false)
   const [groupOrder,   setGroupOrder]   = useState(() => METER_GROUPS.map((_, i) => i))
@@ -1104,6 +1260,7 @@ function MeterListPage({ onBack, scenario }) {
   const [showAddModal,    setShowAddModal]    = useState(false)
   const [showManualMeter, setShowManualMeter] = useState(false)
   const [showToast,       setShowToast]       = useState(false)
+  const [segment,         setSegment]         = useState(0)
   const tabsRef = useRef(null)
 
   const handleManualConfirm = () => {
@@ -1113,8 +1270,25 @@ function MeterListPage({ onBack, scenario }) {
   }
 
   if (selectedItem) {
+    if (segment === 0 && !selectedItem.tenant) {
+      onUpdateScenario?.(4, 'landlord')
+      return <MHMeterPage scenario={4} isLandlord={true} onBack={() => setSelectedItem(null)} />
+    }
+    if (segment === 0 && selectedItem.tenant) {
+      return <MeterInfoPage scenario={1} isLandlord={true} onBack={() => setSelectedItem(null)} />
+    }
+    if (segment === 1) {
+      if (!selectedItem.tenant) {
+        return <MeterInfoPage scenario={5} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} />
+      }
+      const tradScenario = selectedItem.traditionalTag === '房東抄表' ? 2 : 3
+      return <MeterInfoPage scenario={tradScenario} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} />
+    }
     if (scenario === 0 || scenario === 1) {
       return <MeterInfoPage scenario={scenario} isLandlord={scenario === 0} onBack={() => setSelectedItem(null)} />
+    }
+    if (scenario === 2 || scenario === 3) {
+      return <MeterInfoPage scenario={scenario} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} />
     }
     return <MeterDataPage item={selectedItem} onBack={() => setSelectedItem(null)} scenario={scenario} />
   }
@@ -1147,7 +1321,7 @@ function MeterListPage({ onBack, scenario }) {
             <path d="M15 18L9 12L15 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </button>
-        <span className="ml-title">電表列表</span>
+        <span className="ml-title">電表清單</span>
         <div className="ml-header-actions">
           <button className="ll-icon-btn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -1155,9 +1329,17 @@ function MeterListPage({ onBack, scenario }) {
               <path d="M16 16l3.5 3.5" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </button>
-          <button className="ll-icon-btn" onClick={scenario === 2 ? () => setShowAddModal(true) : undefined}>
-            <img src={icAdd} alt="新增" width={24} height={24}/>
+          <button className="ll-icon-btn" onClick={segment === 0 && scenario === 2 ? () => setShowAddModal(true) : undefined}>
+            <img src={segment === 0 ? icAdd : icTutorial02} alt={segment === 0 ? '新增' : '說明'} width={24} height={24}/>
           </button>
+        </div>
+      </div>
+
+      {/* Segment control */}
+      <div className="ml-segment-wrap">
+        <div className="ml-segment">
+          <button className={`ml-segment-btn${segment === 0 ? ' ml-segment-btn--active' : ''}`} onClick={() => { setSegment(0); onUpdateScenario?.(0, 'landlord') }}>MH 電表</button>
+          <button className={`ml-segment-btn${segment === 1 ? ' ml-segment-btn--active' : ''}`} onClick={() => { setSegment(1); onUpdateScenario?.(2, 'landlord') }}>傳統電表</button>
         </div>
       </div>
 
@@ -1186,13 +1368,26 @@ function MeterListPage({ onBack, scenario }) {
             <div className="ml-section-header">{group.property}</div>
             <div className="ml-group">
               {group.items.map((item, i) => (
-                <div key={i} className="ml-row" onClick={() => setSelectedItem(item)}>
+                <div key={i} className="ml-row" onClick={() => {
+                  if (segment === 0 && item.tenant) onUpdateScenario?.(1, 'landlord')
+                  if (segment === 1) {
+                    const ts = !item.tenant ? 5 : item.traditionalTag === '房東抄表' ? 2 : 3
+                    onUpdateScenario?.(ts, 'landlord')
+                  }
+                  setSelectedItem(item)
+                }}>
                   <div className="ml-row-info">
                     <span className="ml-row-name">
                       {item.room}{item.tenant ? `・${item.tenant}` : ''}
                     </span>
                     <span className="ml-row-sub">{item.sub}</span>
-                    {item.tag && <span className="ml-tag">{item.tag}</span>}
+                    <div className="ml-tag-row">
+                      {segment === 1 && item.alertTag && <span className="ml-tag ml-tag--error">{item.alertTag}</span>}
+                      {segment === 0 && item.tag && <span className="ml-tag">{item.tag}</span>}
+                      {segment === 1 && item.traditionalTag && (
+                        <span className={`ml-tag ${item.traditionalTag === '租客抄表' ? 'ml-tag--blue' : 'ml-tag--orange'}`}>{item.traditionalTag}</span>
+                      )}
+                    </div>
                   </div>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path d="M9 6l6 6-6 6" stroke="#bbb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -1262,7 +1457,7 @@ const LL_TABS = [
   { label: '我的',   on: icTabSetting,      off: icTabSetting         },
 ]
 
-function LandlordHomePage({ scenario }) {
+function LandlordHomePage({ scenario, onSelectView, onUpdateScenario }) {
   const [showMenu, setShowMenu] = useState(false)
   const [showMeterList, setShowMeterList] = useState(false)
 
@@ -1340,7 +1535,7 @@ function LandlordHomePage({ scenario }) {
         onClose={() => setShowMenu(false)}
         onMenuSelect={item => { if (item === '電表清單') setShowMeterList(true) }}
       />
-      {showMeterList && <MeterListPage onBack={() => setShowMeterList(false)} scenario={scenario} />}
+      {showMeterList && <MeterListPage onBack={() => setShowMeterList(false)} scenario={scenario} onSelectView={onSelectView} onUpdateScenario={onUpdateScenario} />}
     </div>
   )
 }
@@ -1745,8 +1940,21 @@ const SHARED_SCENARIOS = [0, 1, 3] // 儲值電表, 系統自動抄表, 租客�
 export default function App() {
   const [scenario, setScenario] = useState(3)
   const [view, setView] = useState('tenant') // 'landlord' | 'tenant'
+  const [navKey, setNavKey] = useState(0)
 
-  const selectView = (s, v) => { setScenario(s); setView(v) }
+  // Full reset: used by scenario panel buttons — remounts LandlordHomePage
+  const selectView = (s, v) => {
+    setScenario(s)
+    setView(v)
+    setShowElecRecord(false)
+    setShowMeterModal(false)
+    setShowDepositModal(false)
+    setShowPaymentModal(false)
+    setNavKey(k => k + 1)
+  }
+
+  // Scenario-only update: used by segment tabs — updates state without remounting
+  const updateScenario = (s, v) => { setScenario(s); if (v) setView(v) }
   const [showMeterModal, setShowMeterModal] = useState(false)
   const [showElecRecord, setShowElecRecord] = useState(false)
   const [showDepositModal, setShowDepositModal] = useState(false)
@@ -1842,7 +2050,7 @@ export default function App() {
             </div>
 
             <BillCard title="租金 2 期" due="2025/03/29" amount="$12,600" overdue={false} />
-            <BillCard title="電表儲值" due="2025/03/28" amount="$900" overdue={false} />
+            {scenario === 0 && <BillCard title="電表儲值" due="2025/03/28" amount="$900" overdue={false} />}
             <BillCard title="租金 1 期" due="2025/02/18" amount="$12,600" overdue={true} />
           </div>
 
@@ -1863,8 +2071,13 @@ export default function App() {
         {showMeterModal && <MeterModal property={PROPERTY_NAME} room={ROOM_NAME} onClose={() => setShowMeterModal(false)} onUpload={(r) => handleUploadSuccess(r)} />}
         {showDepositModal && <DepositModal onClose={() => setShowDepositModal(false)} onPay={(amt) => { setPaymentAmount(amt); setShowDepositModal(false); setShowPaymentModal(true) }} />}
         {showPaymentModal && <PaymentModal amount={paymentAmount} onClose={() => setShowPaymentModal(false)} />}
-        {showElecRecord && <ElecRecordPage scenario={scenario} onBack={() => setShowElecRecord(false)} />}
-        {view === 'landlord' && <LandlordHomePage scenario={scenario} />}
+        {showElecRecord && (scenario === 2 || scenario === 3
+          ? <MeterInfoPage scenario={scenario} isLandlord={false} onBack={() => setShowElecRecord(false)} />
+          : scenario === 1
+            ? <MHMeterPage scenario={1} onBack={() => setShowElecRecord(false)} />
+            : <ElecRecordPage scenario={scenario} onBack={() => setShowElecRecord(false)} />
+        )}
+        {view === 'landlord' && <LandlordHomePage key={navKey} scenario={scenario} onSelectView={selectView} onUpdateScenario={updateScenario} />}
         {showToast && <Toast message="度數已上傳！" />}
       </div>
 

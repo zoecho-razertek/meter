@@ -432,7 +432,7 @@
 .th-bill-amount--overdue { color: var(--color-base-notice-error); }
 
 /* Tab bar */
-.th-tabbar--hidden {
+.th-tabbar.th-tabbar--hidden {
   display: none;
 }
 .th-tabbar {
@@ -865,6 +865,9 @@
   font-size: var(--font-size-p1);
   color: var(--color-text-main);
 }
+.elec-row-reading--failed {
+  color: var(--color-base-notice-error);
+}
 
 /* Toast */
 .toast {
@@ -1056,6 +1059,33 @@
   align-items: center;
   margin-left: auto;
 }
+/* Segment control */
+.ml-segment-wrap {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  background: var(--color-base-white-blue);
+}
+.ml-segment {
+  display: flex;
+  background: rgba(120, 120, 128, 0.12);
+  border-radius: 9px;
+  padding: 2px;
+  height: 32px;
+}
+.ml-segment-btn {
+  flex: 1;
+  border-radius: 7px;
+  font-size: 13px;
+  color: var(--color-text-unfocus);
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.ml-segment-btn--active {
+  background: white;
+  color: var(--color-text-main);
+  font-weight: 600;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04);
+  border: 0.5px solid rgba(0,0,0,0.04);
+}
 /* Tabs */
 .ml-tabs-row {
   display: flex;
@@ -1149,6 +1179,11 @@
   font-size: var(--font-size-p4);
   color: var(--color-text-secondary);
 }
+.ml-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
 .ml-tag {
   align-self: flex-start;
   background: var(--color-secondary-yellow);
@@ -1160,6 +1195,14 @@
 .ml-tag--error {
   background: var(--color-base-notice-error);
   color: var(--color-text-white);
+}
+.ml-tag--blue {
+  background: var(--color-base-notice-blue-tag);
+  color: var(--color-text-main);
+}
+.ml-tag--orange {
+  background: var(--color-base-notice-warning-tag);
+  color: var(--color-text-main);
 }
 /* Dividers under each row */
 .ml-group .ml-row {
@@ -1555,6 +1598,99 @@
   cursor: pointer;
 }
 
+/* ── Manual Reading Sheet ───────────────────────────────────────────────── */
+.mdr-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+}
+.mdr-sheet {
+  background: white;
+  border-radius: 20px 20px 0 0;
+  width: 100%;
+  padding: 0 32px 44px;
+}
+.mdr-handle {
+  width: 36px;
+  height: 5px;
+  background: var(--color-base-grey-input, #d9d9d9);
+  border-radius: 2.5px;
+  margin: 12px auto;
+}
+.mdr-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-top: 8px;
+}
+.mdr-title {
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--color-text-main);
+  text-align: center;
+}
+.mdr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mdr-field-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+.mdr-field-label {
+  font-size: 14px;
+  color: var(--color-text-main);
+}
+.mdr-field-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.mdr-input-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  background: var(--color-base-grey-bg, #fefefe);
+  border: 1px solid var(--color-base-grey-input, #d9d9d9);
+  border-radius: 4px;
+  padding: 0 12px;
+}
+.mdr-input {
+  flex: 1;
+  font-size: 15px;
+  color: var(--color-text-main);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+.mdr-input::placeholder {
+  color: var(--color-text-placeholder);
+}
+.mdr-input-unit {
+  font-size: 14px;
+  color: var(--color-text-main);
+  flex-shrink: 0;
+}
+.mdr-submit-btn {
+  width: 100%;
+  height: 48px;
+  background: var(--color-primary-blue-main);
+  color: white;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.mdr-submit-btn--disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* ── Landlord Home Page ─────────────────────────────────────────────────── */
 .ll-page {
   position: absolute;
@@ -1903,6 +2039,49 @@
 }
 .mi-btn--grey {
   background: var(--color-base-white-edit);
+}
+
+/* ── Meter Mode Page ──────────────────────────────────────────────────────── */
+.mmode-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+.mmode-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px;
+  cursor: pointer;
+}
+.mmode-row--divider {
+  border-bottom: 1px solid var(--color-border-divider, #c2c2c2);
+}
+.mmode-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mmode-label {
+  font-size: 16px;
+  color: var(--color-text-main);
+}
+.mmode-desc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+.mmode-btn-area {
+  padding: 28px 44px 40px;
+  flex-shrink: 0;
+}
+.mmode-save-btn {
+  width: 100%;
+  height: 48px;
+  background: var(--color-primary-blue-main);
+  border-radius: 4px;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 /* ── MH Meter Page ────────────────────────────────────────────────────────── */
