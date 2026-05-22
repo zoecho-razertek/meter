@@ -11,6 +11,11 @@ import icRentRepair from './assets/ic_rent_repair.png'
 import icRentElectric from './assets/ic_rent_electric.png'
 import icRentMeterCopy from './assets/ic_rent_meter_copy.png'
 import icBattery from './assets/ic_battery.png'
+import icBasicSuccess from './assets/ic_basic_success.png'
+import imgPopupAgreement from './assets/img_popup_agreement.png'
+import imgInfoRentLeaseSuccess from './assets/img_info_rent_lease_success.png'
+import imgRoomDefault from './assets/img_room_default.png'
+import icArrowNext from './assets/ic_basic_arrow_next.png'
 import imgPopupPhoto from './assets/img_popup_photo.png'
 import icBurger from './assets/ic_basic_burger.png'
 import icEyeOpen from './assets/ic_input_eye_open.png'
@@ -442,7 +447,7 @@ function MeterModePage({ onBack, currentMode, onSave }) {
   )
 }
 
-function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
+function MeterInfoPage({ onBack, onHome, scenario, isLandlord, item, hasNoPricing, isUnbound, onClearFailedTag }) {
   const [showRecord, setShowRecord] = useState(false)
   const [showDeposit, setShowDeposit] = useState(false)
   const [showPayment, setShowPayment] = useState(false)
@@ -451,14 +456,24 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
   const [showBalanceEdit, setShowBalanceEdit] = useState(false)
   const [showMeterName, setShowMeterName] = useState(false)
   const [showReplace, setShowReplace] = useState(false)
+  const [showPricingAlert, setShowPricingAlert] = useState(false)
+  const [showBindMHAlert, setShowBindMHAlert] = useState(false)
+  const [showPricingChange, setShowPricingChange] = useState(false)
+  const [showPricingToast, setShowPricingToast] = useState(false)
+  const [showPricingNotify, setShowPricingNotify] = useState(false)
+  const [showRevokeToast, setShowRevokeToast] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
-  const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [showModeSelect, setShowModeSelect] = useState(false)
+  const [showEnableAlert, setShowEnableAlert] = useState(!!hasNoPricing)
+  const [activatedPricing, setActivatedPricing] = useState(null)
+  const [showBindScanner, setShowBindScanner] = useState(false)
+  const [boundSuccess, setBoundSuccess] = useState(false)
   const [meterMode, setMeterMode] = useState('供電')
   const [paymentAmt, setPaymentAmt] = useState(null)
   const isDeposit = scenario === 0
   const isTraditional = scenario === 2 || scenario === 3 || scenario === 5
   const isVacant = scenario === 4 || scenario === 5
+  const effectiveIsUnbound = isUnbound && !boundSuccess
 
   if (showModeSelect) {
     return <MeterModePage
@@ -468,13 +483,19 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
     />
   }
 
+  if (showBindScanner) {
+    return <ScannerPage onBack={() => setShowBindScanner(false)} onSuccess={() => { setShowBindScanner(false); setBoundSuccess(true) }} toastText={`${item?.property}・${item?.room}\n已成功綁定電表！`} />
+  }
   if (showScanner) {
-    return <ScannerPage onBack={() => setShowScanner(false)} onSuccess={() => { setShowScanner(false); setShowSuccessToast(true); setTimeout(() => setShowSuccessToast(false), 2500) }} />
+    return <ScannerPage onBack={() => setShowScanner(false)} onSuccess={() => setShowScanner(false)} toastText={'信義套房・101\n電表更換成功！'} />
   }
 
   if (showRecord) {
     if (isLandlord && isTraditional) {
       return <MeterDataPage item={item} onBack={() => setShowRecord(false)} scenario={scenario} />
+    }
+    if (isLandlord && item?.tag === '系統抄表失敗！') {
+      return <MeterDataPage item={item} onBack={() => setShowRecord(false)} scenario={scenario} hasFailed={true} onClearFailed={onClearFailedTag} />
     }
     return <ElecRecordPage scenario={scenario} onBack={() => setShowRecord(false)} />
   }
@@ -545,7 +566,7 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
               <InfoIcon />
             </div>
           </div>
-          {!isTraditional && (
+          {!isTraditional && !effectiveIsUnbound && (
             <div className="mi-row">
               <span className="mi-label">電表 ID</span>
               <span className="mi-value">12-34-5678-90-1</span>
@@ -555,36 +576,45 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
 
         <div className="mi-section-title">電表運作</div>
         <div className="mi-group">
+          {!effectiveIsUnbound && (
           <div className="mi-row mi-row--divider">
             <span className="mi-label">目前電表度數</span>
             <span className="mi-value">12342.55</span>
           </div>
+          )}
           {!isVacant && (
             <div className="mi-row mi-row--divider">
               <span className="mi-label">計價方式</span>
-              <span className="mi-value">{isDeposit ? '儲值模式' : isTraditional ? '手動抄表' : '系統抄表'}</span>
+              {effectiveIsUnbound ? (
+                <div className="mi-value-row" style={{ gap: 6 }}>
+                  <span className="ml-tag ml-tag--error">未綁定電表</span>
+                  <span style={{ color: 'var(--color-base-notice-error)', fontSize: 'var(--font-size-p3)' }}>{isDeposit ? '儲值模式' : '系統抄表'}</span>
+                </div>
+              ) : (
+                <span className="mi-value">{hasNoPricing && !activatedPricing ? '—' : (isDeposit || activatedPricing?.method === '儲值電表') ? '儲值模式' : isTraditional ? '手動抄表' : '系統抄表'}</span>
+              )}
             </div>
           )}
-          {isDeposit ? (<>
+          {(!hasNoPricing || activatedPricing) && ((isDeposit || activatedPricing?.method === '儲值電表') ? (<>
             <div className="mi-row mi-row--divider">
               <span className="mi-label">儲值費率</span>
-              <span className="mi-value">每度 $5.5</span>
+              <span className="mi-value" style={effectiveIsUnbound ? { color: 'var(--color-text-placeholder)' } : undefined}>每度 ${activatedPricing?.unitPrice ?? '5.5'}</span>
             </div>
-            <div className="mi-row mi-row--divider" style={{ cursor: 'pointer' }} onClick={() => isLandlord ? setShowBalanceEdit(true) : setShowDeposit(true)}>
+            {!effectiveIsUnbound && <div className="mi-row mi-row--divider" style={{ cursor: 'pointer' }} onClick={() => isLandlord ? setShowBalanceEdit(true) : setShowDeposit(true)}>
               <span className="mi-label">儲值餘額</span>
               <div className="mi-value-row">
-                <span className="mi-value">$1,200</span>
+                <span className="mi-value">${(item?.balance ?? 1200).toLocaleString()}</span>
                 <ChevronRight />
               </div>
-            </div>
-            <div className="mi-row mi-row--divider" style={{ cursor: 'pointer' }} onClick={() => setShowHistory(true)}>
+            </div>}
+            {!effectiveIsUnbound && <div className="mi-row mi-row--divider" style={{ cursor: 'pointer' }} onClick={() => setShowHistory(true)}>
               <span className="mi-label">儲值歷程</span>
               <ChevronRight />
-            </div>
-            <div className="mi-row" style={{ cursor: 'pointer' }} onClick={() => setShowDeduction(true)}>
+            </div>}
+            {!effectiveIsUnbound && <div className="mi-row" style={{ cursor: 'pointer' }} onClick={() => setShowDeduction(true)}>
               <span className="mi-label">扣款紀錄</span>
               <ChevronRight />
-            </div>
+            </div>}
           </>) : isVacant ? (<>
             {scenario === 4 && (
               <div className="mi-row" style={{ cursor: 'pointer' }} onClick={() => setShowModeSelect(true)}>
@@ -598,21 +628,23 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
           </>) : (<>
             <div className="mi-row mi-row--divider">
               <span className="mi-label">電費</span>
-              <span className="mi-value">每度 $5.5</span>
+              <span className="mi-value" style={effectiveIsUnbound ? { color: 'var(--color-text-placeholder)' } : undefined}>每度 ${activatedPricing?.unitPrice ?? '5.5'}</span>
             </div>
+            {(!hasNoPricing || activatedPricing?.summerChecked) && (
             <div className="mi-row mi-row--divider">
               <span className="mi-label">夏季電費</span>
-              <span className="mi-value">每度 $6</span>
+              <span className="mi-value" style={effectiveIsUnbound ? { color: 'var(--color-text-placeholder)' } : undefined}>每度 ${activatedPricing?.summerRate ?? '6'}</span>
             </div>
-            <div className="mi-row" style={{ cursor: 'pointer' }} onClick={() => setShowRecord(true)}>
+            )}
+            {!effectiveIsUnbound && <div className="mi-row" style={{ cursor: 'pointer' }} onClick={() => setShowRecord(true)}>
               <span className="mi-label">抄表紀錄</span>
               <ChevronRight />
-            </div>
-          </>)}
+            </div>}
+          </>))}
         </div>
 
         {isLandlord && (<>
-          {!isTraditional && (<>
+          {!isTraditional && !effectiveIsUnbound && (<>
             <div className="mi-section-title">保固資訊</div>
             <div className="mi-group">
               <div className="mi-row mi-row--divider">
@@ -642,27 +674,203 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
           </>)}
 
           <div className="mi-btn-area">
-            {!isTraditional && <button className="mi-btn mi-btn--outline" onClick={() => setShowReplace(true)}>更換電表</button>}
-            {!isVacant && <button className="mi-btn mi-btn--grey">變更計價方式</button>}
+            {!effectiveIsUnbound && (<>
+              {hasNoPricing && !activatedPricing && <button className="mi-btn mi-btn--primary" onClick={() => setShowPricingChange(true)}>啟用電表計費</button>}
+              {!isTraditional && <button className="mi-btn mi-btn--outline" onClick={() => setShowReplace(true)}>更換電表</button>}
+              {!isVacant && (!hasNoPricing || activatedPricing) && <button className="mi-btn mi-btn--grey" onClick={() => isTraditional ? setShowBindMHAlert(true) : setShowPricingAlert(true)}>變更計價方式</button>}
+            </>)}
           </div>
         </>)}
       </div>
+      {effectiveIsUnbound && (
+        <div className="mi-sticky-footer">
+          <button className="mi-btn mi-btn--primary" onClick={() => setShowBindScanner(true)}>綁定電表</button>
+        </div>
+      )}
+      {showEnableAlert && (
+        <div className="cp-alert-overlay">
+          <div className="cp-alert">
+            <p className="cp-alert-title">啟用電表進行電費計費？</p>
+            <p className="cp-alert-body">啟用電表計費即視同變更租約，系統每天僅能執行一次，請確認後再操作。</p>
+            <div className="cp-alert-divider-h" />
+            <div className="cp-alert-btns">
+              <button className="cp-alert-btn" onClick={() => setShowEnableAlert(false)}>取消</button>
+              <div className="cp-alert-divider-v" />
+              <button className="cp-alert-btn cp-alert-btn--primary" onClick={() => { setShowEnableAlert(false); setShowPricingChange(true) }}>啟用</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showDeposit && <DepositModal onClose={() => setShowDeposit(false)} onPay={(amt) => { setPaymentAmt(amt); setShowDeposit(false); setShowPayment(true) }} />}
       {showPayment && <PaymentModal amount={paymentAmt} onClose={() => setShowPayment(false)} />}
       {showBalanceEdit && <BalanceEditModal onClose={() => setShowBalanceEdit(false)} />}
       {showMeterName && <MeterNameModal onClose={() => setShowMeterName(false)} />}
       {showReplace && <MeterReplaceModal onClose={() => setShowReplace(false)} onComplete={() => { setShowReplace(false); setShowScanner(true) }} />}
-      {showSuccessToast && (
-        <div className="sc-toast-overlay">
-          <div className="sc-toast">
-            <svg width="84" height="86" viewBox="0 0 84 86" fill="none">
-              <circle cx="42" cy="43" r="30" stroke="#389e26" strokeWidth="2.5"/>
-              <path d="M28 43l10 10 18-20" stroke="#389e26" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            <p className="sc-toast-text">信義套房・101{'\n'}電表更換成功！</p>
+      {showPricingAlert && <PricingAlertModal onCancel={() => setShowPricingAlert(false)} onConfirm={() => { setShowPricingAlert(false); setShowPricingChange(true) }} />}
+      {showBindMHAlert && (
+        <div className="cp-alert-overlay">
+          <div className="cp-alert">
+            <p className="cp-alert-title">請先綁定 MH 電表</p>
+            <p className="cp-alert-body">請先安裝並綁定 MH 電表，再進行變更計價方式。</p>
+            <div className="cp-alert-divider-h" />
+            <div className="cp-alert-btns">
+              <button className="cp-alert-btn" onClick={() => setShowBindMHAlert(false)}>取消</button>
+              <div className="cp-alert-divider-v" />
+              <button className="cp-alert-btn cp-alert-btn--primary" onClick={() => setShowBindMHAlert(false)}>購買 MH 電表</button>
+            </div>
           </div>
         </div>
-      }}
+      )}
+      {showPricingChange && <PricingChangeModal onClose={() => setShowPricingChange(false)} onDirectChange={(data) => { setShowPricingChange(false); if (hasNoPricing || activatedPricing) setActivatedPricing(data); setShowPricingToast(true); setTimeout(() => setShowPricingToast(false), 2500) }} onGetConsent={(data) => { setShowPricingChange(false); if (hasNoPricing || activatedPricing) setActivatedPricing(data); setShowPricingNotify(true) }} />}
+      {showPricingNotify && <PricingNotifyPage onBack={() => setShowPricingNotify(false)} onHome={onHome} onRevoke={() => { setShowPricingNotify(false); if (hasNoPricing) setActivatedPricing(null); setShowRevokeToast(true); setTimeout(() => setShowRevokeToast(false), 2500) }} />}
+      {showRevokeToast && (
+        <div className="sc-toast-overlay">
+          <div className="sc-toast sc-toast--compact">
+            <p className="sc-toast-text">變更已撤回</p>
+          </div>
+        </div>
+      )}
+      {showPricingToast && (
+        <div className="sc-toast-overlay">
+          <div className="sc-toast sc-toast--compact">
+            <p className="sc-toast-text">已發送電費變更通知</p>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const CHART_Y = [105, 90, 75, 60, 45, 30, 15, 0]
+const CHART_PX = 34  // pixels per x data point
+
+// X-axis labels per tab index: [當日, 週, 月, 年]
+const CHART_X = [
+  Array.from({ length: 25 }, (_, i) => `${String(i).padStart(2, '0')}:00`),
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  Array.from({ length: 31 }, (_, i) => `1/${i + 1}`),
+  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+]
+
+// MHMeterPage single-line data per tab
+const MH_LINE = [
+  [30,35,28,22,18,15,12,10,8,9,20,45,62,55,48,50,62,95,82,72,60,50,40,35,30],
+  [42,58,35,70,88,65,45],
+  [20,25,30,22,35,40,55,60,48,38,30,25,20,18,22,35,48,62,70,65,58,45,38,30,25,20,18,22,30,40,35],
+  [38,42,50,58,65,72,80,75,68,60,50,42],
+]
+
+// AdvancedComparePage two-line data per tab
+const AC_LINE1 = [
+  [20,25,18,15,12,10,8,9,18,40,55,60,55,50,48,52,65,95,82,72,60,50,40,35,30],
+  [38,52,30,65,82,60,42],
+  [18,22,28,20,32,38,52,58,45,35,28,22,18,16,20,32,45,58,68,62,55,42,35,28,22,18,16,20,28,38,32],
+  [35,38,48,55,62,70,78,72,65,55,45,38],
+]
+const AC_LINE2 = [
+  [15,20,14,12,10,8,6,8,15,32,45,52,48,44,42,46,58,82,72,65,52,42,35,28,25],
+  [30,42,25,55,70,50,35],
+  [14,18,22,16,26,30,42,48,38,28,22,18,14,12,16,26,38,48,58,52,46,35,28,22,18,14,12,16,22,30,26],
+  [28,32,40,48,55,62,68,65,58,48,38,30],
+]
+
+function AdvancedComparePage({ onBack }) {
+  const [activeTab, setActiveTab] = useState(0)
+
+  const xLabels = CHART_X[activeTab]
+  const line1 = AC_LINE1[activeTab]
+  const line2 = AC_LINE2[activeTab]
+  const W = xLabels.length * CHART_PX, H = 121, MAX = 105
+  const needsScroll = W > 280
+  const toX = i => (i / (xLabels.length - 1)) * W
+  const toY = v => H - (v / MAX) * H
+  const pts1 = line1.map((v, i) => `${toX(i)},${toY(v)}`).join(' ')
+  const pts2 = line2.map((v, i) => `${toX(i)},${toY(v)}`).join(' ')
+
+  return (
+    <div className="elec-page">
+      <StatusBar />
+      <div className="elec-header">
+        <button className="elec-back-btn" onClick={onBack}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <span className="elec-title">進階用電比較</span>
+        <div style={{ width: 44 }} />
+      </div>
+
+      <div className="ac-body">
+        <div className="ac-card">
+          {/* 標題 */}
+          <div className="ac-card-title">
+            <div className="ac-title-icon">
+              <img src={icRentBill} alt="" width={18} height={18} />
+            </div>
+            <span className="ac-title-text">用電總量</span>
+          </div>
+
+          {/* 日期列 1 — 冰 */}
+          <div className="ac-date-row">
+            <div className="ac-date-label">
+              <span className="ac-date">2025/06/25</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#2e739e" strokeWidth="1.2" strokeLinecap="round"/></svg>
+            </div>
+            <div className="ac-bar-row">
+              <div className="ac-bar ac-bar--ice" style={{ width: '63%' }}>
+                <img src={icRentIce} alt="" width={12} height={12} />
+                <span className="ac-bar-label">28.22 度</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 日期列 2 — 火 */}
+          <div className="ac-date-row">
+            <div className="ac-date-label">
+              <span className="ac-date">2025/06/26</span>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="#2e739e" strokeWidth="1.2" strokeLinecap="round"/></svg>
+            </div>
+            <div className="ac-bar-row">
+              <div className="ac-bar ac-bar--fire" style={{ width: '100%' }}>
+                <img src={icRentFire} alt="" width={12} height={12} />
+              </div>
+            </div>
+          </div>
+
+          <div className="ac-divider" />
+
+          {/* 時間分頁 */}
+          <div className="ac-tabs">
+            {['當日', '週', '月', '年'].map((t, i) => (
+              <button key={t} className={`ac-tab${activeTab === i ? ' ac-tab--active' : ''}`} onClick={() => setActiveTab(i)}>{t}</button>
+            ))}
+          </div>
+
+          {/* 折線圖 */}
+          <div className="ac-chart">
+            <div className="ac-y-axis">
+              {CHART_Y.map(v => <span key={v} className="ac-y-label">{v}</span>)}
+            </div>
+            <div className="ac-chart-scroll">
+              <div className="ac-chart-area">
+                <svg width={needsScroll ? W : '100%'} height={H} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio={needsScroll ? undefined : 'none'} overflow="visible">
+                  {CHART_Y.map(v => (
+                    <line key={v} x1={0} y1={toY(v)} x2={W} y2={toY(v)} stroke="#c2c2c2" strokeWidth="0.5" />
+                  ))}
+                  <polygon points={`0,${H} ${pts1} ${W},${H}`} fill="rgba(206,228,241,0.35)" />
+                  <polygon points={`0,${H} ${pts2} ${W},${H}`} fill="rgba(174,214,228,0.2)" />
+                  <polyline points={pts1} fill="none" stroke="#5baed4" strokeWidth="1.5" strokeLinejoin="round" />
+                  <polyline points={pts2} fill="none" stroke="#8cc8df" strokeWidth="1.5" strokeLinejoin="round" strokeDasharray="3 2" />
+                </svg>
+                <div className="ac-x-axis" style={{ width: needsScroll ? W : '100%' }}>
+                  {xLabels.map(x => <span key={x} className="ac-x-label">{x}</span>)}
+                </div>
+              </div>
+            </div>
+            <span className="ac-y-unit">電度</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -670,10 +878,24 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
 function MHMeterPage({ onBack, scenario, isLandlord }) {
   const [activeTab, setActiveTab] = useState(0)
   const [showMeterInfo, setShowMeterInfo] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const tabs = ['當日', '當週', '當月', '年']
 
+  const mhXLabels = CHART_X[activeTab]
+  const mhLineData = MH_LINE[activeTab]
+  const mhW = mhXLabels.length * CHART_PX
+  const mhNeedsScroll = mhW > 280
+  const mhH = 140
+  const mhMax = 105
+  const mhToX = i => (i / (mhXLabels.length - 1)) * mhW
+  const mhToY = v => mhH - (v / mhMax) * mhH
+  const mhPts = mhLineData.map((v, i) => `${mhToX(i)},${mhToY(v)}`).join(' ')
+
   if (showMeterInfo) {
-    return <MeterInfoPage scenario={scenario} isLandlord={isLandlord} onBack={() => setShowMeterInfo(false)} />
+    return <MeterInfoPage scenario={scenario} isLandlord={isLandlord} onBack={() => setShowMeterInfo(false)} onHome={onBack} />
+  }
+  if (showAdvanced) {
+    return <AdvancedComparePage onBack={() => setShowAdvanced(false)} />
   }
 
   return (
@@ -744,29 +966,22 @@ function MHMeterPage({ onBack, scenario, isLandlord }) {
           <div className="mh-chart-wrap">
             <div className="mh-chart-left">
               <div className="mh-y-labels">
-                {[105, 90, 75, 60, 45, 30, 15, 0].map(v => (
+                {CHART_Y.map(v => (
                   <span key={v} className="mh-y-label">{v}</span>
                 ))}
               </div>
               <span className="mh-y-title">電度</span>
             </div>
-            <div className="mh-chart-right">
-              <svg className="mh-chart-svg" viewBox="0 0 272 140" preserveAspectRatio="none" fill="none">
+            <div className="mh-chart-scroll">
+              <svg width={mhNeedsScroll ? mhW : '100%'} height={mhH} viewBox={`0 0 ${mhW} ${mhH}`} preserveAspectRatio={mhNeedsScroll ? undefined : 'none'} fill="none">
                 {[0, 20, 40, 60, 80, 100, 120, 140].map(y => (
-                  <line key={y} x1="0" y1={y} x2="272" y2={y} stroke="#e8e8e8" strokeWidth="0.5"/>
+                  <line key={y} x1="0" y1={y} x2={mhW} y2={y} stroke="#e8e8e8" strokeWidth="0.5"/>
                 ))}
-                <path
-                  d="M0,118 C12,112 22,90 40,72 C58,54 72,48 100,32 C120,20 142,14 160,10 C176,6 188,15 210,30 C228,43 252,58 272,68 L272,140 L0,140 Z"
-                  fill="rgba(58,110,165,0.12)"
-                />
-                <path
-                  d="M0,118 C12,112 22,90 40,72 C58,54 72,48 100,32 C120,20 142,14 160,10 C176,6 188,15 210,30 C228,43 252,58 272,68"
-                  stroke="#3a6ea5"
-                  strokeWidth="1.5"
-                />
+                <polygon points={`0,${mhH} ${mhPts} ${mhW},${mhH}`} fill="rgba(58,110,165,0.12)" />
+                <polyline points={mhPts} fill="none" stroke="#3a6ea5" strokeWidth="1.5" strokeLinejoin="round" />
               </svg>
-              <div className="mh-x-labels">
-                {['16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','24:00'].map(t => (
+              <div className="mh-x-labels" style={{ width: mhNeedsScroll ? mhW : '100%' }}>
+                {mhXLabels.map(t => (
                   <span key={t} className="mh-x-label">{t}</span>
                 ))}
               </div>
@@ -797,7 +1012,7 @@ function MHMeterPage({ onBack, scenario, isLandlord }) {
             <img src={icRentElectric} alt="" width={24} height={24} />
             <span className="mh-bottom-label">電表資訊</span>
           </button>
-          <button className="mh-bottom-btn">
+          <button className="mh-bottom-btn" onClick={() => setShowAdvanced(true)}>
             <img src={icRentBill} alt="" width={24} height={24} />
             <span className="mh-bottom-label">進階比較</span>
           </button>
@@ -908,15 +1123,16 @@ function ManualReadingSheet({ lastDate, prevReading, onClose, onSubmit }) {
   )
 }
 
-function MeterDataPage({ item, onBack, scenario }) {
+function MeterDataPage({ item, onBack, scenario, hasFailed, onClearFailed }) {
   const [selected,          setSelected]          = useState(null)
   const [showReminder,      setShowReminder]      = useState(false)
   const [showToast,         setShowToast]         = useState(false)
   const [showReadingSheet,  setShowReadingSheet]  = useState(false)
+  const [showUpdateToast,   setShowUpdateToast]   = useState(false)
   const [uploadedReading,   setUploadedReading]   = useState(null)
 
   const isLandlordManual = scenario === 2
-  const hasDetail = !isLandlordManual
+  const hasDetail = !isLandlordManual && !hasFailed
 
   const handleReminderConfirm = () => {
     setShowReminder(false)
@@ -945,7 +1161,7 @@ function MeterDataPage({ item, onBack, scenario }) {
         <div className="elec-year-label">2024</div>
         <div className="elec-list">
           {ELEC_RECORDS.map(({ date, reading }, i) => {
-            const isFailed = isLandlordManual && i === 0
+            const isFailed = (isLandlordManual || hasFailed) && i === 0
             const showFailed = isFailed && !uploadedReading
             return (
               <div
@@ -1012,12 +1228,20 @@ function MeterDataPage({ item, onBack, scenario }) {
         </div>
       )}
       {showToast && <Toast message="已發送抄表提醒！" />}
+      {showUpdateToast && <Toast message="度數已更新" />}
       {showReadingSheet && (
         <ManualReadingSheet
-          lastDate={ELEC_RECORDS[1]?.date ?? ''}
-          prevReading={ELEC_RECORDS[1]?.reading ?? ''}
+          lastDate={hasFailed ? (ELEC_RECORDS[0]?.date ?? '') : (ELEC_RECORDS[1]?.date ?? '')}
+          prevReading={hasFailed ? (item?.prevReading ?? '') : (ELEC_RECORDS[1]?.reading ?? '')}
           onClose={() => setShowReadingSheet(false)}
-          onSubmit={(val) => { setUploadedReading(val); setShowReadingSheet(false) }}
+          onSubmit={(val) => {
+            setUploadedReading(val)
+            setShowReadingSheet(false)
+            if (hasFailed) {
+              setShowUpdateToast(true)
+              setTimeout(() => { setShowUpdateToast(false); onClearFailed?.() }, 2500)
+            }
+          }}
         />
       )}
     </div>
@@ -1058,24 +1282,28 @@ function LandlordSideMenu({ open, onClose, onMenuSelect }) {
 
 // ─── Meter List Page ──────────────────────────────────────────────────────────
 
+const MH_ONLY = ['台北套房', '台東民宿']
+
 const METER_GROUPS = [
-  { property: '台北套房', items: [
-    { room: '101', tenant: '奇爾查克', sub: '退租日：2025/03/08', tag: null,  traditionalTag: '租客抄表', alertTag: '上月未抄表', prevReading: 12389 },
-    { room: '102', tenant: null,       sub: '空置',               tag: null,  traditionalTag: null,       alertTag: null,         prevReading: 11823 },
-    { room: '103', tenant: '先西',     sub: '即將搬入',           tag: null,  traditionalTag: '租客抄表', alertTag: null,         prevReading: 10274 },
-    { room: '104', tenant: null,       sub: '空置',               tag: null,  traditionalTag: null,       alertTag: null,         prevReading: 9851  },
+  { property: '台北套房', address: '台北市大安區忠孝東路四段100號', items: [
+    { room: '101', tenant: '我是儲值電表', sub: '退租日：2025/03/08', tag: null,  traditionalTag: '租客抄表', alertTag: '上月未抄表', prevReading: 12389, isDepositMeter: true, balance: 100 },
+    { room: '102', tenant: null,          sub: '空置',               tag: null,  traditionalTag: null,       alertTag: null,         prevReading: 11823 },
+    { room: '103', tenant: '我是自動抄表', sub: '即將搬入',           tag: null,  traditionalTag: '租客抄表', alertTag: null,         prevReading: 10274 },
+    { room: '104', tenant: '我沒設定電費', sub: '退租日：2026/12/31', tag: null, traditionalTag: null, alertTag: null, prevReading: 9851, hasNoPricing: true },
     { room: '105', tenant: '瑪露希爾', sub: '退租日：2025/03/08', tag: 'New', traditionalTag: '房東抄表', alertTag: null,         prevReading: 13102 },
   ]},
-  { property: '桃園套房', items: [
-    { room: '101', tenant: '小李',   sub: '退租日：2025/03/08', tag: null, traditionalTag: '租客抄表', prevReading: 8834 },
+  { property: '桃園套房', address: '桃園市中壢區中山路200號', items: [
+    { room: '101', tenant: '小李',   sub: '退租日：2025/03/08', tag: null, traditionalTag: '租客抄表', alertTag: '上月未抄表', prevReading: 8834 },
     { room: '102', tenant: '自來也', sub: '退租日：2025/03/08', tag: null, traditionalTag: '房東抄表', prevReading: 9271 },
   ]},
-  { property: '台中套房', items: [
+  { property: '台中套房', address: '台中市西區民權路50號', items: [
     { room: '201', tenant: '陳大文', sub: '退租日：2025/06/30', tag: null, traditionalTag: '租客抄表', prevReading: 14502 },
+    { room: '202', tenant: null, sub: '空置', tag: null, traditionalTag: null, prevReading: 13880 },
   ]},
-  { property: '台東民宿', items: [
-    { room: 'A01', tenant: '林小花', sub: '退租日：2025/05/15', tag: 'New', traditionalTag: '租客抄表', prevReading: 7643 },
-    { room: 'A02', tenant: null,     sub: '空置',               tag: null,  traditionalTag: null,       prevReading: 6218 },
+  { property: '台東民宿', address: '台東縣台東市中正路300號', items: [
+    { room: 'A01', tenant: '我是儲值電表', sub: '退租日：2025/05/15', tag: '未綁定電表', traditionalTag: '租客抄表', prevReading: 7643, isDepositMeter: true, isUnbound: true },
+    { room: 'A02', tenant: '我是自動抄表', sub: '退租日：2027/01/31', tag: '未綁定電表',  traditionalTag: null,       prevReading: 6218, isUnbound: true },
+    { room: 'A03', tenant: '我是自動抄表斷線了', sub: '退租日：2026/08/31', tag: '系統抄表失敗！', traditionalTag: null, alertTag: null, prevReading: 5841 },
   ]},
 ]
 
@@ -1270,16 +1498,119 @@ function ManualMeterPage({ onBack, onConfirm }) {
   )
 }
 
-function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
+
+// ─── Meter Select Property Page ───────────────────────────────────────────────
+
+function MeterSelectPropertyPage({ onBack, onSelect }) {
+  const [activeTab, setActiveTab] = useState('全部')
+  const properties = METER_GROUPS.filter(g => MH_ONLY.includes(g.property))
+  const shown = activeTab === '全部' ? properties : properties.filter(p => p.name === activeTab || p.property === activeTab)
+
+  return (
+    <div className="msp-page">
+      <StatusBar />
+      <div className="msp-header">
+        <button className="ll-icon-btn" onClick={onBack}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <span className="msp-title">選擇電表房源</span>
+        <div style={{ width: 44 }} />
+      </div>
+
+      <div className="msp-tabs">
+        {['全部', ...properties.map(p => p.property)].map(t => (
+          <button key={t} className={`msp-tab${activeTab === t ? ' msp-tab--on' : ''}`} onClick={() => setActiveTab(t)}>{t}</button>
+        ))}
+      </div>
+
+      <div className="msp-list">
+        {shown.map(group => (
+          <div key={group.property} className="msp-card" onClick={() => onSelect(group)}>
+            <div className="msp-card-photo">
+              <img src={imgRoomDefault} alt="" width={62} height={60} style={{ objectFit: 'cover', borderRadius: 2 }} />
+            </div>
+            <div className="msp-card-info">
+              <span className="msp-card-name">{group.property}</span>
+              <span className="msp-card-address">{group.address}</span>
+              <span className="msp-card-count">({group.items.filter(i => i.tenant).length}/{group.items.length} 已租)</span>
+            </div>
+            <img src={icArrowNext} alt="" width={24} height={24} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Meter Select Room Page ────────────────────────────────────────────────────
+
+function MeterSelectRoomPage({ onBack, group, onScan }) {
+  const rooms = group.items
+  const isBound = (item) => item.isDepositMeter && !item.isUnbound
+
+  return (
+    <div className="msrp-page">
+      <StatusBar />
+      <div className="msrp-header">
+        <button className="ll-icon-btn" onClick={onBack}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="#333" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <span className="msrp-title">綁定電表</span>
+        <div style={{ width: 44 }} />
+      </div>
+
+      <div className="msrp-body">
+        <div className="msrp-prop-row">
+          <div className="msrp-prop-icon">
+            <img src={imgRoomDefault} alt="" width={62} height={60} style={{ objectFit: 'cover', display: 'block' }} />
+          </div>
+          <div className="msrp-prop-info">
+            <span className="msrp-prop-name">{group.property}</span>
+            <span className="msrp-prop-address">{group.address}</span>
+          </div>
+        </div>
+
+        <p className="msrp-hint">請選擇要綁定電表的房間。</p>
+
+        <div className="msrp-floor-label">1F</div>
+        <div className="msrp-grid">
+          {rooms.map((item) => {
+            const bound = isBound(item)
+            return (
+              <div
+                key={item.room}
+                className={`msrp-room${bound ? ' msrp-room--disabled' : ''}`}
+                onClick={bound ? undefined : onScan}
+              >
+                {bound && <span className="msrp-room-tag">已達上限</span>}
+                <span className="msrp-room-name" style={bound ? { color: 'var(--color-text-unfocus)' } : undefined}>{item.room}</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MeterListPage({ onBack, onHome, scenario, onSelectView, onUpdateScenario }) {
   const [activeTab,    setActiveTab]    = useState(0)
   const [showSort,     setShowSort]     = useState(false)
   const [groupOrder,   setGroupOrder]   = useState(() => METER_GROUPS.map((_, i) => i))
   const [groupVisible, setGroupVisible] = useState(() => METER_GROUPS.map(() => true))
   const [selectedItem,    setSelectedItem]    = useState(null)
-  const [showAddModal,    setShowAddModal]    = useState(false)
   const [showManualMeter, setShowManualMeter] = useState(false)
   const [showToast,       setShowToast]       = useState(false)
   const [segment,         setSegment]         = useState(0)
+  const [showSelectProperty, setShowSelectProperty] = useState(false)
+  const [showSelectRoom,     setShowSelectRoom]     = useState(false)
+  const [selectRoomGroup,    setSelectRoomGroup]    = useState(null)
+  const [showNewMeterScanner, setShowNewMeterScanner] = useState(false)
+  const [clearedFailedItems, setClearedFailedItems] = useState(new Set())
   const tabsRef = useRef(null)
 
   const handleManualConfirm = () => {
@@ -1293,15 +1624,29 @@ function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
       onUpdateScenario?.(4, 'landlord')
       return <MHMeterPage scenario={4} isLandlord={true} onBack={() => setSelectedItem(null)} />
     }
+    if (segment === 0 && selectedItem.hasNoPricing) {
+      return <MeterInfoPage scenario={1} isLandlord={true} hasNoPricing={true} item={selectedItem} onBack={() => setSelectedItem(null)} onHome={onHome} />
+    }
+    if (segment === 0 && selectedItem.isDepositMeter) {
+      return <MeterInfoPage scenario={0} isLandlord={true} item={selectedItem} isUnbound={!!selectedItem.isUnbound} onBack={() => setSelectedItem(null)} onHome={onHome} />
+    }
+    if (segment === 0 && selectedItem.isUnbound && !selectedItem.isDepositMeter) {
+      return <MeterInfoPage scenario={1} isLandlord={true} item={selectedItem} isUnbound={true} onBack={() => setSelectedItem(null)} onHome={onHome} />
+    }
+    if (segment === 0 && selectedItem.tag === '系統抄表失敗！' && !clearedFailedItems.has(`${selectedItem.property}-${selectedItem.room}`)) {
+      const itemKey = `${selectedItem.property}-${selectedItem.room}`
+      return <MeterInfoPage scenario={1} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} onHome={onHome}
+        onClearFailedTag={() => setClearedFailedItems(s => new Set([...s, itemKey]))} />
+    }
     if (segment === 0 && selectedItem.tenant) {
-      return <MeterInfoPage scenario={1} isLandlord={true} onBack={() => setSelectedItem(null)} />
+      return <MeterInfoPage scenario={1} isLandlord={true} onBack={() => setSelectedItem(null)} onHome={onHome} />
     }
     if (segment === 1) {
       if (!selectedItem.tenant) {
-        return <MeterInfoPage scenario={5} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} />
+        return <MeterInfoPage scenario={5} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} onHome={onHome} />
       }
       const tradScenario = selectedItem.traditionalTag === '房東抄表' ? 2 : 3
-      return <MeterInfoPage scenario={tradScenario} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} />
+      return <MeterInfoPage scenario={tradScenario} isLandlord={true} item={selectedItem} onBack={() => setSelectedItem(null)} onHome={onHome} />
     }
     if (scenario === 0 || scenario === 1) {
       return <MeterInfoPage scenario={scenario} isLandlord={scenario === 0} onBack={() => setSelectedItem(null)} />
@@ -1315,7 +1660,10 @@ function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
     return <ManualMeterPage onBack={() => setShowManualMeter(false)} onConfirm={handleManualConfirm} />
   }
 
-  const visibleOrdered = groupOrder.filter(i => groupVisible[i])
+  const TRAD_ONLY  = ['桃園套房', '台中套房']
+  const segmentProps = segment === 0 ? MH_ONLY : TRAD_ONLY
+
+  const visibleOrdered = groupOrder.filter(i => groupVisible[i] && segmentProps.includes(METER_GROUPS[i].property))
   const tabs = ['全部', ...visibleOrdered.map(i => METER_GROUPS[i].property)]
 
   const displayGroups = activeTab === 0
@@ -1348,7 +1696,7 @@ function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
               <path d="M16 16l3.5 3.5" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
             </svg>
           </button>
-          <button className="ll-icon-btn" onClick={segment === 0 && scenario === 2 ? () => setShowAddModal(true) : undefined}>
+          <button className="ll-icon-btn" onClick={segment === 0 ? () => setShowSelectProperty(true) : (scenario === 2 ? () => setShowManualMeter(true) : undefined)}>
             <img src={segment === 0 ? icAdd : icTutorial02} alt={segment === 0 ? '新增' : '說明'} width={24} height={24}/>
           </button>
         </div>
@@ -1357,8 +1705,8 @@ function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
       {/* Segment control */}
       <div className="ml-segment-wrap">
         <div className="ml-segment">
-          <button className={`ml-segment-btn${segment === 0 ? ' ml-segment-btn--active' : ''}`} onClick={() => { setSegment(0); onUpdateScenario?.(0, 'landlord') }}>MH 電表</button>
-          <button className={`ml-segment-btn${segment === 1 ? ' ml-segment-btn--active' : ''}`} onClick={() => { setSegment(1); onUpdateScenario?.(2, 'landlord') }}>傳統電表</button>
+          <button className={`ml-segment-btn${segment === 0 ? ' ml-segment-btn--active' : ''}`} onClick={() => { setSegment(0); setActiveTab(0); onUpdateScenario?.(0, 'landlord') }}>MH 電表</button>
+          <button className={`ml-segment-btn${segment === 1 ? ' ml-segment-btn--active' : ''}`} onClick={() => { setSegment(1); setActiveTab(0); onUpdateScenario?.(2, 'landlord') }}>傳統電表</button>
         </div>
       </div>
 
@@ -1388,12 +1736,13 @@ function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
             <div className="ml-group">
               {group.items.map((item, i) => (
                 <div key={i} className="ml-row" onClick={() => {
-                  if (segment === 0 && item.tenant) onUpdateScenario?.(1, 'landlord')
+                  if (segment === 0 && item.isDepositMeter) onUpdateScenario?.(0, 'landlord')
+                  else if (segment === 0 && item.tenant) onUpdateScenario?.(1, 'landlord')
                   if (segment === 1) {
                     const ts = !item.tenant ? 5 : item.traditionalTag === '房東抄表' ? 2 : 3
                     onUpdateScenario?.(ts, 'landlord')
                   }
-                  setSelectedItem(item)
+                  setSelectedItem({ ...item, property: group.property })
                 }}>
                   <div className="ml-row-info">
                     <span className="ml-row-name">
@@ -1401,11 +1750,11 @@ function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
                     </span>
                     <span className="ml-row-sub">{item.sub}</span>
                     <div className="ml-tag-row">
-                      {segment === 1 && item.alertTag && <span className="ml-tag ml-tag--error">{item.alertTag}</span>}
-                      {segment === 0 && item.tag && <span className="ml-tag">{item.tag}</span>}
                       {segment === 1 && item.traditionalTag && (
                         <span className={`ml-tag ${item.traditionalTag === '租客抄表' ? 'ml-tag--blue' : 'ml-tag--orange'}`}>{item.traditionalTag}</span>
                       )}
+                      {segment === 1 && item.alertTag && <span className="ml-tag ml-tag--error">{item.alertTag}</span>}
+                      {segment === 0 && item.tag && !clearedFailedItems.has(`${group.property}-${item.room}`) && <span className={`ml-tag${(item.tag === '未綁定電表' || item.tag === '系統抄表失敗！') ? ' ml-tag--error' : ''}`}>{item.tag}</span>}
                     </div>
                   </div>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -1428,31 +1777,12 @@ function MeterListPage({ onBack, scenario, onSelectView, onUpdateScenario }) {
         />
       )}
 
-      {showAddModal && (
-        <div className="md-reminder-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="md-reminder-card" onClick={e => e.stopPropagation()}>
-            <p className="md-reminder-title">電表操作</p>
-            <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-              <rect x="7" y="10" width="46" height="37" rx="2" fill="#bccbe0" opacity="0.4"/>
-              <rect x="10" y="13" width="40" height="31" rx="2" fill="white"/>
-              <rect x="15" y="18" width="18" height="10" rx="1" fill="#d6d6f4"/>
-              <circle cx="19" cy="28" r="4" fill="#c8d4e8"/>
-              <path d="M28 38 L38 24 L48 38 Z" fill="#c8d4e8" opacity="0.7"/>
-            </svg>
-            <p className="md-reminder-sub">請選擇要綁定 MH 電表 (可用於儲值和系統自動抄表)，或是要進行傳統電表的手動抄表。</p>
-            <div className="md-reminder-btns">
-              <button className="md-reminder-btn" onClick={() => setShowAddModal(false)}>綁定 MH 電表</button>
-              <button className="md-reminder-btn" onClick={() => { setShowAddModal(false); setShowManualMeter(true) }}>手動抄表</button>
-            </div>
-          </div>
-          <button className="md-reminder-close" onClick={() => setShowAddModal(false)}>
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M1 1L11 11M11 1L1 11" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
-            </svg>
-          </button>
-        </div>
-      )}
+
       {showToast && <Toast message="已發送電費帳單" />}
+
+      {showSelectProperty && <MeterSelectPropertyPage onBack={() => setShowSelectProperty(false)} onSelect={(group) => { setSelectRoomGroup(group); setShowSelectProperty(false); setShowSelectRoom(true) }} />}
+      {showSelectRoom && selectRoomGroup && <MeterSelectRoomPage group={selectRoomGroup} onBack={() => setShowSelectRoom(false)} onScan={() => { setShowSelectRoom(false); setShowNewMeterScanner(true) }} />}
+      {showNewMeterScanner && <ScannerPage onBack={() => setShowNewMeterScanner(false)} onSuccess={() => setShowNewMeterScanner(false)} toastText={selectRoomGroup ? `${selectRoomGroup.property}\n已成功綁定電表！` : '已成功綁定電表！'} />}
     </div>
   )
 }
@@ -1554,7 +1884,7 @@ function LandlordHomePage({ scenario, onSelectView, onUpdateScenario }) {
         onClose={() => setShowMenu(false)}
         onMenuSelect={item => { if (item === '電表清單') setShowMeterList(true) }}
       />
-      {showMeterList && <MeterListPage onBack={() => setShowMeterList(false)} scenario={scenario} onSelectView={onSelectView} onUpdateScenario={onUpdateScenario} />}
+      {showMeterList && <MeterListPage onBack={() => setShowMeterList(false)} onHome={() => setShowMeterList(false)} scenario={scenario} onSelectView={onSelectView} onUpdateScenario={onUpdateScenario} />}
     </div>
   )
 }
@@ -1703,7 +2033,14 @@ function PaymentModal({ amount, onClose }) {
   )
 }
 
-function ScannerPage({ onBack, onSuccess }) {
+function ScannerPage({ onBack, onSuccess, toastText = '已成功綁定電表！' }) {
+  const [showToast, setShowToast] = useState(false)
+
+  const handleScan = () => {
+    setShowToast(true)
+    setTimeout(() => { setShowToast(false); onSuccess() }, 2500)
+  }
+
   return (
     <div className="sc-page">
       <StatusBar />
@@ -1718,7 +2055,7 @@ function ScannerPage({ onBack, onSuccess }) {
       </div>
 
       <div className="sc-camera">
-        <div className="sc-viewfinder" onClick={onSuccess} style={{ cursor: 'pointer' }} />
+        <div className="sc-viewfinder" onClick={handleScan} style={{ cursor: 'pointer' }} />
         <p className="sc-location">信義套房・101</p>
       </div>
 
@@ -1736,6 +2073,15 @@ function ScannerPage({ onBack, onSuccess }) {
           <button className="sc-manual-link">手動輸入設備 ID</button>
         </div>
       </div>
+
+      {showToast && (
+        <div className="sc-toast-overlay">
+          <div className="sc-toast">
+            <img src={icBasicSuccess} alt="" width={84} height={86} />
+            <p className="sc-toast-text">{toastText}</p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1767,6 +2113,191 @@ function MeterReplaceModal({ onClose, onComplete }) {
           <p className="mr-timer">解綁中...00:{ss}...</p>
         </div>
         <button className="mr-cancel" onClick={onClose}>我改變主意了</button>
+      </div>
+    </div>
+  )
+}
+
+function PricingNotifyPage({ onBack, onHome, onRevoke }) {
+  const [showRevokeAlert, setShowRevokeAlert] = useState(false)
+
+  return (
+    <div className="pn-page">
+      <StatusBar />
+      <div className="pn-header">
+        <span className="pn-title">租約變更</span>
+        <button className="pn-home-btn" onClick={onHome}>回首頁</button>
+      </div>
+
+      <div className="pn-property">
+        <img src={imgRoomDefault} alt="" className="pn-property-img" />
+        <div className="pn-property-info">
+          <span className="pn-property-name">信義套房・101</span>
+          <span className="pn-property-addr">台北市中山區中山路467巷172號2樓</span>
+        </div>
+      </div>
+
+      <div className="pn-center">
+        <img src={imgInfoRentLeaseSuccess} alt="" width={280} height={280} />
+        <p className="pn-desc">已發送租約變更通知，待承租方確認。</p>
+      </div>
+
+      <div className="pn-bottom">
+        <button className="pn-done-btn" onClick={onBack}>完成</button>
+        <div className="pn-or-row">
+          <div className="pn-or-line" />
+          <span className="pn-or-text">or</span>
+          <div className="pn-or-line" />
+        </div>
+        <div className="pn-revoke-area">
+          <p className="pn-revoke-hint">租約內容需要修改、或是改變主意了？</p>
+          <button className="pn-revoke-btn" onClick={() => setShowRevokeAlert(true)}>撤回變更</button>
+        </div>
+      </div>
+
+      {showRevokeAlert && (
+        <div className="cp-alert-overlay">
+          <div className="cp-alert">
+            <p className="cp-alert-title">確定要撤回變更？</p>
+            <p className="cp-alert-body">將撤回「信義套房・101」的租約變更，確定要繼續？</p>
+            <div className="cp-alert-divider-h" />
+            <div className="cp-alert-btns">
+              <button className="cp-alert-btn" onClick={() => setShowRevokeAlert(false)}>取消</button>
+              <div className="cp-alert-divider-v" />
+              <button className="cp-alert-btn cp-alert-btn--danger" onClick={onRevoke}>撤回</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PricingAlertModal({ onCancel, onConfirm }) {
+  return (
+    <div className="cp-alert-overlay">
+      <div className="cp-alert">
+        <p className="cp-alert-title">確定要變更計價方式？</p>
+        <p className="cp-alert-body">變更計價方式視同變更租約，系統每天僅能執行一次，請確認後再操作。</p>
+        <div className="cp-alert-divider-h" />
+        <div className="cp-alert-btns">
+          <button className="cp-alert-btn" onClick={onCancel}>取消</button>
+          <div className="cp-alert-divider-v" />
+          <button className="cp-alert-btn cp-alert-btn--danger" onClick={onConfirm}>變更</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PricingChangeModal({ onClose, onDirectChange, onGetConsent }) {
+  const [method, setMethod] = useState('系統抄表')
+  const [unitPrice, setUnitPrice] = useState('')
+  const [summerRate, setSummerRate] = useState('')
+  const [summerChecked, setSummerChecked] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+
+  const isSystem = method === '系統抄表'
+  const canSend = unitPrice.trim().length > 0 && (!isSystem || !summerChecked || summerRate.trim().length > 0)
+
+  return (
+    <div className="meter-overlay" onClick={onClose}>
+      <div className="meter-sheet cp-sheet" onClick={e => e.stopPropagation()}>
+        <div className="meter-drag" />
+        <p className="cp-title">電表計費</p>
+
+        {/* 房源名稱 */}
+        <div className="cp-info-block">
+          <span className="cp-info-label">房源名稱</span>
+          <span className="cp-info-value">信義套房・101</span>
+        </div>
+
+        {/* 承租方 */}
+        <div className="cp-info-block">
+          <span className="cp-info-label">承租方</span>
+          <span className="cp-info-value">王大大</span>
+        </div>
+
+        {/* 計價方式 select */}
+        <div className="cp-field">
+          <span className="cp-label">計價方式</span>
+          <div className="cp-select-wrap">
+            <span className="cp-select-value">{method}</span>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="#5d697f" strokeWidth="1.2" strokeLinecap="round"/></svg>
+            <select className="cp-select-native" value={method} onChange={e => setMethod(e.target.value)}>
+              <option>系統抄表</option>
+              <option>儲值電表</option>
+            </select>
+          </div>
+        </div>
+
+        {isSystem ? (<>
+          <div className="cp-field">
+            <span className="cp-label">每度單價</span>
+            <div className="cp-input-wrap">
+              <input className="cp-input" placeholder="金額" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} />
+              <span className="cp-suffix">元</span>
+            </div>
+          </div>
+          <button className="cp-checkbox-row" onClick={() => setSummerChecked(v => !v)}>
+            <div className={`cp-checkbox${summerChecked ? ' cp-checkbox--on' : ''}`}>
+              {summerChecked && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+            </div>
+            <span className="cp-checkbox-label">夏季電費</span>
+          </button>
+          <div className={`cp-summer-fields${summerChecked ? '' : ' cp-summer-fields--disabled'}`}>
+            <div className="cp-field cp-field--half">
+              <span className="cp-label">夏季每度單價*</span>
+              <div className="cp-input-wrap">
+                <input className="cp-input" placeholder="金額" value={summerRate} onChange={e => setSummerRate(e.target.value)} disabled={!summerChecked} />
+                <span className="cp-suffix">元</span>
+              </div>
+            </div>
+            <div className="cp-field cp-field--half">
+              <span className="cp-label">夏季月份</span>
+              <div className="cp-input-wrap cp-input-wrap--readonly">
+                <span className="cp-input" style={{ color: 'var(--color-text-placeholder)' }}>6~9 月</span>
+              </div>
+            </div>
+          </div>
+        </>) : (
+          <div className="cp-field">
+            <span className="cp-label">儲值費率*</span>
+            <div className="cp-input-wrap">
+              <input className="cp-input" placeholder="金額" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} />
+              <span className="cp-suffix">元/每度</span>
+            </div>
+          </div>
+        )}
+
+        {/* 發送變更通知 */}
+        <button className={`cp-send-btn${canSend ? '' : ' cp-send-btn--disabled'}`} onClick={canSend ? () => setShowConfirm(true) : undefined}>發送變更通知</button>
+      </div>
+      {showConfirm && <PricingConfirmPopup onClose={() => setShowConfirm(false)} onDirectChange={() => onDirectChange({ method, unitPrice, summerRate, summerChecked })} onGetConsent={() => onGetConsent({ method, unitPrice, summerRate, summerChecked })} />}
+    </div>
+  )
+}
+
+function PricingConfirmPopup({ onClose, onDirectChange, onGetConsent }) {
+  return (
+    <div className="pca-overlay" onClick={onClose}>
+      <div className="pca-content" onClick={e => e.stopPropagation()}>
+        <div className="pca-card">
+          <p className="pca-title">取得承租方同意？</p>
+          <img src={imgPopupAgreement} alt="" width={60} height={60} />
+          <p className="pca-body">
+            收費依照您與房客簽署的租約為準，本系統僅提供計算與收費工具，不代表房客已同意此項變更。
+            {'\n\n'}
+            請確定此變更已與承租方協調同意，符合雙方約定內容。
+          </p>
+          <button className="pca-btn" onClick={onGetConsent}>取得承租方同意</button>
+          <button className="pca-btn pca-btn--secondary" onClick={onDirectChange}>直接變更</button>
+        </div>
+        <button className="pca-close" onClick={onClose}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M1 1l10 10M11 1L1 11" stroke="#333" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        </button>
       </div>
     </div>
   )
