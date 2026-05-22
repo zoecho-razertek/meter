@@ -450,6 +450,9 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
   const [showDeduction, setShowDeduction] = useState(false)
   const [showBalanceEdit, setShowBalanceEdit] = useState(false)
   const [showMeterName, setShowMeterName] = useState(false)
+  const [showReplace, setShowReplace] = useState(false)
+  const [showScanner, setShowScanner] = useState(false)
+  const [showSuccessToast, setShowSuccessToast] = useState(false)
   const [showModeSelect, setShowModeSelect] = useState(false)
   const [meterMode, setMeterMode] = useState('供電')
   const [paymentAmt, setPaymentAmt] = useState(null)
@@ -463,6 +466,10 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
       currentMode={meterMode}
       onSave={(mode) => { setMeterMode(mode); setShowModeSelect(false) }}
     />
+  }
+
+  if (showScanner) {
+    return <ScannerPage onBack={() => setShowScanner(false)} onSuccess={() => { setShowScanner(false); setShowSuccessToast(true); setTimeout(() => setShowSuccessToast(false), 2500) }} />
   }
 
   if (showRecord) {
@@ -635,8 +642,8 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
           </>)}
 
           <div className="mi-btn-area">
-            {!isTraditional && <button className="mi-btn mi-btn--outline">更換電表</button>}
-            <button className="mi-btn mi-btn--grey">變更計價方式</button>
+            {!isTraditional && <button className="mi-btn mi-btn--outline" onClick={() => setShowReplace(true)}>更換電表</button>}
+            {!isVacant && <button className="mi-btn mi-btn--grey">變更計價方式</button>}
           </div>
         </>)}
       </div>
@@ -644,6 +651,18 @@ function MeterInfoPage({ onBack, scenario, isLandlord, item }) {
       {showPayment && <PaymentModal amount={paymentAmt} onClose={() => setShowPayment(false)} />}
       {showBalanceEdit && <BalanceEditModal onClose={() => setShowBalanceEdit(false)} />}
       {showMeterName && <MeterNameModal onClose={() => setShowMeterName(false)} />}
+      {showReplace && <MeterReplaceModal onClose={() => setShowReplace(false)} onComplete={() => { setShowReplace(false); setShowScanner(true) }} />}
+      {showSuccessToast && (
+        <div className="sc-toast-overlay">
+          <div className="sc-toast">
+            <svg width="84" height="86" viewBox="0 0 84 86" fill="none">
+              <circle cx="42" cy="43" r="30" stroke="#389e26" strokeWidth="2.5"/>
+              <path d="M28 43l10 10 18-20" stroke="#389e26" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <p className="sc-toast-text">信義套房・101{'\n'}電表更換成功！</p>
+          </div>
+        </div>
+      }}
     </div>
   )
 }
@@ -1680,6 +1699,75 @@ function PaymentModal({ amount, onClose }) {
         >通知已匯款</button>
       </div>
       {toast && <div className="toast">{toast}</div>}
+    </div>
+  )
+}
+
+function ScannerPage({ onBack, onSuccess }) {
+  return (
+    <div className="sc-page">
+      <StatusBar />
+      <div className="sc-header">
+        <button className="sc-back" onClick={onBack}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M15 18L9 12L15 6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <span className="sc-title">識別電表</span>
+        </button>
+        <span className="sc-hint">說明</span>
+      </div>
+
+      <div className="sc-camera">
+        <div className="sc-viewfinder" onClick={onSuccess} style={{ cursor: 'pointer' }} />
+        <p className="sc-location">信義套房・101</p>
+      </div>
+
+      <div className="sc-sheet">
+        <div className="meter-drag-indicator" />
+        <p className="sc-sheet-title">綁定電表</p>
+        <p className="sc-sheet-desc">請確認電表已安裝完成，並連上 wifi。</p>
+        <div className="sc-divider">
+          <div className="sc-divider-line" />
+          <span className="sc-divider-text">or</span>
+          <div className="sc-divider-line" />
+        </div>
+        <div className="sc-manual">
+          <p className="sc-manual-hint">找不到 QR Code？</p>
+          <button className="sc-manual-link">手動輸入設備 ID</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MeterReplaceModal({ onClose, onComplete }) {
+  const TOTAL = 10
+  const [elapsed, setElapsed] = useState(0)
+
+  useEffect(() => {
+    if (elapsed >= TOTAL) { onComplete(); return }
+    const t = setTimeout(() => setElapsed(e => e + 1), 1000)
+    return () => clearTimeout(t)
+  }, [elapsed])
+
+  const pct = Math.round((elapsed / TOTAL) * 100)
+  const remaining = TOTAL - elapsed
+  const ss = String(remaining).padStart(2, '0')
+
+  return (
+    <div className="meter-overlay">
+      <div className="meter-sheet mr-sheet">
+        <div className="meter-drag-indicator" />
+        <p className="mr-title">更換電表</p>
+        <p className="mr-desc">確定要更換電表？系統會記錄目前電表的度數，並在綁定新電表後，重新開始計算。</p>
+        <div className="mr-progress-area">
+          <div className="mr-track">
+            <div className="mr-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="mr-timer">解綁中...00:{ss}...</p>
+        </div>
+        <button className="mr-cancel" onClick={onClose}>我改變主意了</button>
+      </div>
     </div>
   )
 }
