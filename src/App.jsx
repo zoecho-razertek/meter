@@ -462,6 +462,8 @@ function MeterInfoPage({ onBack, onHome, scenario, isLandlord, item, hasNoPricin
   const [showPricingToast, setShowPricingToast] = useState(false)
   const [showPricingNotify, setShowPricingNotify] = useState(false)
   const [showRevokeToast, setShowRevokeToast] = useState(false)
+  const [pendingConsent, setPendingConsent] = useState(false)
+  const [showPendingRevokeAlert, setShowPendingRevokeAlert] = useState(false)
   const [showScanner, setShowScanner] = useState(false)
   const [showModeSelect, setShowModeSelect] = useState(false)
   const [showEnableAlert, setShowEnableAlert] = useState(!!hasNoPricing)
@@ -531,6 +533,10 @@ function MeterInfoPage({ onBack, onHome, scenario, isLandlord, item, hasNoPricin
         <div style={{ width: 44 }} />
       </div>
 
+      {pendingConsent && (
+        <div className="mi-pending-bar">等待承租方回覆租約變更</div>
+      )}
+
       <div className="mi-body">
         {/* 基本資訊 (no section title) */}
         {!isTraditional && (
@@ -561,10 +567,7 @@ function MeterInfoPage({ onBack, onHome, scenario, isLandlord, item, hasNoPricin
           </div>
           <div className="mi-row mi-row--divider">
             <span className="mi-label">狀態</span>
-            <div className="mi-value-row">
-              <span className="mi-value">{isVacant ? '無租約' : '租約中'}</span>
-              <InfoIcon />
-            </div>
+            <span className="mi-value">{isVacant ? '無租約' : '租約中'}</span>
           </div>
           {!isTraditional && !effectiveIsUnbound && (
             <div className="mi-row">
@@ -677,7 +680,8 @@ function MeterInfoPage({ onBack, onHome, scenario, isLandlord, item, hasNoPricin
             {!effectiveIsUnbound && (<>
               {hasNoPricing && !activatedPricing && <button className="mi-btn mi-btn--primary" onClick={() => setShowPricingChange(true)}>啟用電表計費</button>}
               {!isTraditional && <button className="mi-btn mi-btn--outline" onClick={() => setShowReplace(true)}>更換電表</button>}
-              {!isVacant && (!hasNoPricing || activatedPricing) && <button className="mi-btn mi-btn--grey" onClick={() => isTraditional ? setShowBindMHAlert(true) : setShowPricingAlert(true)}>變更計價方式</button>}
+              {!isVacant && (!hasNoPricing || activatedPricing) && !pendingConsent && <button className="mi-btn mi-btn--grey" onClick={() => isTraditional ? setShowBindMHAlert(true) : setShowPricingAlert(true)}>變更計價方式</button>}
+              {pendingConsent && <button className="mi-btn mi-btn--grey" onClick={() => setShowPendingRevokeAlert(true)}>撤回變更</button>}
             </>)}
           </div>
         </>)}
@@ -721,8 +725,22 @@ function MeterInfoPage({ onBack, onHome, scenario, isLandlord, item, hasNoPricin
           </div>
         </div>
       )}
+      {showPendingRevokeAlert && (
+        <div className="cp-alert-overlay">
+          <div className="cp-alert">
+            <p className="cp-alert-title">確定要撤回變更？</p>
+            <p className="cp-alert-body">將撤回租約變更，確定要繼續？</p>
+            <div className="cp-alert-divider-h" />
+            <div className="cp-alert-btns">
+              <button className="cp-alert-btn" onClick={() => setShowPendingRevokeAlert(false)}>取消</button>
+              <div className="cp-alert-divider-v" />
+              <button className="cp-alert-btn cp-alert-btn--danger" onClick={() => { setShowPendingRevokeAlert(false); setPendingConsent(false); setShowRevokeToast(true); setTimeout(() => setShowRevokeToast(false), 2500) }}>撤回</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showPricingChange && <PricingChangeModal onClose={() => setShowPricingChange(false)} onDirectChange={(data) => { setShowPricingChange(false); if (hasNoPricing || activatedPricing) setActivatedPricing(data); setShowPricingToast(true); setTimeout(() => setShowPricingToast(false), 2500) }} onGetConsent={(data) => { setShowPricingChange(false); if (hasNoPricing || activatedPricing) setActivatedPricing(data); setShowPricingNotify(true) }} />}
-      {showPricingNotify && <PricingNotifyPage onBack={() => setShowPricingNotify(false)} onHome={onHome} onRevoke={() => { setShowPricingNotify(false); if (hasNoPricing) setActivatedPricing(null); setShowRevokeToast(true); setTimeout(() => setShowRevokeToast(false), 2500) }} />}
+      {showPricingNotify && <PricingNotifyPage onBack={() => { setShowPricingNotify(false); setPendingConsent(true) }} onHome={onHome} onRevoke={() => { setShowPricingNotify(false); if (hasNoPricing) setActivatedPricing(null); setShowRevokeToast(true); setTimeout(() => setShowRevokeToast(false), 2500) }} />}
       {showRevokeToast && (
         <div className="sc-toast-overlay">
           <div className="sc-toast sc-toast--compact">

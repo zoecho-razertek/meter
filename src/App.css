@@ -1953,6 +1953,16 @@
 }
 
 /* ── Meter Info Page ──────────────────────────────────────────────────────── */
+.mi-pending-bar {
+  background: var(--color-base-notice-warning-tag);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-p3);
+  color: var(--color-text-main);
+  flex-shrink: 0;
+}
 .mi-body {
   flex: 1;
   overflow-y: auto;
