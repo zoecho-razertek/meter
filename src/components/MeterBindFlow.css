@@ -1,0 +1,285 @@
+/* MeterBindFlow.css — prefix: mbf- (shared), msp- (select property), msrp- (select room) */
+
+/* ── Status bar ───────────────────────────────────────────────────────────── */
+.mbf-status {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0;
+}
+.mbf-status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-main, #333);
+}
+.mbf-status-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Icon button ──────────────────────────────────────────────────────────── */
+.mbf-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ── Alert overlay ────────────────────────────────────────────────────────── */
+.mbf-alert-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mbf-alert {
+  background: var(--color-base-white-main, #fff);
+  border-radius: 14px;
+  width: 270px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.mbf-alert-title {
+  font-size: var(--font-size-p2, 15px);
+  font-weight: var(--font-weight-semibold, 600);
+  color: var(--color-text-main, #333);
+  text-align: center;
+  padding: 20px 16px 8px;
+}
+.mbf-alert-body {
+  font-size: var(--font-size-p4, 12px);
+  color: var(--color-text-secondary, #666);
+  text-align: center;
+  padding: 0 16px 20px;
+  line-height: 1.5;
+}
+.mbf-alert-divider-h {
+  height: 1px;
+  background: var(--color-base-grey-divider, #c2c2c2);
+}
+.mbf-alert-btns {
+  display: flex;
+  height: 44px;
+}
+.mbf-alert-btn {
+  flex: 1;
+  font-size: var(--font-size-p2, 15px);
+  color: var(--color-text-link, #2e739e);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.mbf-alert-divider-v {
+  width: 1px;
+  background: var(--color-base-grey-divider, #c2c2c2);
+}
+.mbf-alert-btn--primary {
+  color: var(--color-primary-blue-main, #1a6fa3);
+  font-weight: var(--font-weight-medium, 500);
+}
+
+/* ── Select Property Page ─────────────────────────────────────────────────── */
+.msp-page {
+  position: absolute;
+  inset: 0;
+  background: var(--color-base-white-gradient-dark, #e1e9f0);
+  display: flex;
+  flex-direction: column;
+  z-index: 70;
+}
+.msp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+.msp-title {
+  font-size: var(--font-size-p1, 16px);
+  color: var(--color-text-main, #333);
+}
+.msp-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-base-grey-divider, #c2c2c2);
+  overflow-x: auto;
+}
+.msp-tab {
+  flex-shrink: 0;
+  padding: 14px 16px;
+  font-size: var(--font-size-p3, 14px);
+  color: var(--color-text-main, #333);
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+}
+.msp-tab--on {
+  font-weight: var(--font-weight-medium, 500);
+}
+.msp-tab--on::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 2px;
+  right: 2px;
+  height: 3px;
+  background: var(--color-secondary-blue, #2e739e);
+  border-radius: 100px 100px 0 0;
+}
+.msp-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+}
+.msp-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px 16px 12px;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+.msp-card-photo {
+  width: 62px;
+  height: 60px;
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.msp-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.msp-card-name {
+  font-size: var(--font-size-p1, 16px);
+  color: var(--color-text-main, #333);
+}
+.msp-card-address {
+  font-size: var(--font-size-p3, 14px);
+  font-weight: var(--font-weight-regular, 400);
+  color: var(--color-text-main, #333);
+}
+.msp-card-count {
+  font-size: var(--font-size-p4, 12px);
+  color: var(--color-text-secondary, #666);
+}
+
+/* ── Select Room Page ─────────────────────────────────────────────────────── */
+.msrp-page {
+  position: absolute;
+  inset: 0;
+  background: var(--color-base-white-gradient-dark, #e1e9f0);
+  display: flex;
+  flex-direction: column;
+  z-index: 70;
+}
+.msrp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+.msrp-title {
+  font-size: var(--font-size-p1, 16px);
+  color: var(--color-text-main, #333);
+}
+.msrp-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.msrp-prop-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.msrp-prop-icon {
+  width: 62px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.msrp-prop-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.msrp-prop-name {
+  font-size: var(--font-size-p1, 16px);
+  color: var(--color-text-main, #333);
+}
+.msrp-prop-address {
+  font-size: var(--font-size-p3, 14px);
+  font-weight: var(--font-weight-regular, 400);
+  color: var(--color-text-main, #333);
+}
+.msrp-hint {
+  font-size: var(--font-size-p1, 16px);
+  color: var(--color-text-main, #333);
+}
+.msrp-floor-label {
+  font-size: var(--font-size-p1, 16px);
+  color: var(--color-text-main, #333);
+}
+.msrp-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.msrp-room {
+  width: 98px;
+  height: 98px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid white;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15), -4px -4px 12px rgba(255, 255, 255, 0.5);
+}
+.msrp-room--disabled {
+  box-shadow: none;
+  border: none;
+  cursor: default;
+}
+.msrp-room-name {
+  font-size: var(--font-size-p1, 16px);
+  color: var(--color-text-main, #333);
+}
+.msrp-room-tag {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: var(--font-size-s2, 10px);
+  color: var(--color-text-placeholder, #aaa);
+  background: var(--color-base-white-second, #f5f5f5);
+  border-radius: 2px;
+  padding: 2px 6px;
+}
+.msrp-room-tag--blue {
+  background: var(--color-base-notice-blue-tag, #ddeeff);
+  color: var(--color-text-link, #2e739e);
+}

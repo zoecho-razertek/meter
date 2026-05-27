@@ -1,0 +1,209 @@
+/* Status Bar */
+.lh-status {
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 0;
+}
+.lh-status-time {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-main, #333);
+}
+.lh-status-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Page shell */
+.lh-page {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 35%, #f0f4f8, #d8e4ec);
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+}
+.lh-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px 12px;
+  flex-shrink: 0;
+}
+.lh-icon-btn {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Scroll body */
+.lh-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px calc(92px + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Info cards */
+.lh-info-card {
+  background: var(--color-base-white-main, #fff);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 12px 16px 12px 12px;
+  position: relative;
+  overflow: hidden;
+  min-height: 109px;
+}
+.lh-card-bg {
+  position: absolute;
+  right: 0; top: 0;
+  height: 100%;
+  width: auto;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0.9;
+}
+.lh-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+.lh-card-label {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-main, #333);
+}
+.lh-card-amount {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 16px;
+  position: relative;
+}
+.lh-card-currency {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-main, #333);
+}
+.lh-card-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--color-text-main, #333);
+}
+
+/* Property stats */
+.lh-prop-stats {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+  position: relative;
+}
+.lh-prop-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 4px;
+  flex: 1;
+}
+.lh-prop-val {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--color-text-link, #2e739e);
+  line-height: 1;
+}
+.lh-prop-lbl {
+  font-size: 11px;
+  color: var(--color-text-main, #333);
+}
+
+/* Shortcut grid */
+.lh-shortcut-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.lh-shortcut-card {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15), -4px -4px 6px rgba(255,255,255,0.5);
+  height: 152px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+.lh-shortcut-icon {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+.lh-shortcut-text {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.lh-shortcut-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-text-main, #333);
+}
+.lh-shortcut-count {
+  font-size: 11px;
+  color: var(--color-text-main, #333);
+}
+
+/* Tab bar */
+.lh-tabbar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 92px;
+  background: var(--color-base-white-second, #f0f0f0);
+  border-top: 0.5px solid #e0e0e0;
+  display: flex;
+  align-items: flex-start;
+  padding-top: 8px;
+}
+.lh-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 4px;
+}
+.lh-tab-label {
+  font-size: 11px;
+}
+.lh-home-indicator {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 139px;
+  height: 5px;
+  background: black;
+  border-radius: 100px;
+}
